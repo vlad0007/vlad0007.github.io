@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>MoonPear</title>
+	<script src = "../libs/buttons.js"></script>
+	<script src = "../libs/three.min.js"></script>
+	<script src = "../libs/WebGeometry.js"></script>
+	<script src = "../libs/polyhedron.js"></script>
+	<script src = "MoonPear_index.js"></script>
+	<script src = "MoonPear_verts.js"></script>
+	<script src = "MoonPear_colors.js"></script>
+	<script src = "MoonPear_pars.js"></script>
+	<script src = "../libs/light.js"></script>
+	
+<style>
+	body 
+	{
+		/* set margin to 0 and overflow to hidden, to go fullscreen */
+		margin: 0;
+		overflow: hidden;
+	}
+
+	.b1 
+	{
+		background: rgb(200, 100, 200); 
+		color: black; 
+		font-size: 12pt;
+		font-weight: bold;
+	}
+
+	img 
+	{
+		border-radius: 4%;
+	}		
+</style>
+
+</head>
+
+<body>
+<script id="vertexShaderFreshnel" type="x-shader/x-vertex">
+uniform float fresnelBias;
+uniform float fresnelScale;
+uniform float fresnelPower;
+
+varying float vReflectionFactor;
+varying vec3 vReflect;
+
+void main() 
+{
+  vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+  vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+
+  vec3 worldNormal = normalize( mat3( modelMatrix[0].xyz, modelMatrix[1].xyz, modelMatrix[2].xyz ) * normal );
+
+  vec3 I = worldPosition.xyz - cameraPosition;
+
+  vReflect = reflect( I, worldNormal );
+  vReflectionFactor = fresnelBias + fresnelScale * pow( 1.0 + dot( normalize( I ), worldNormal ), fresnelPower );
+
+  gl_Position = projectionMatrix * mvPosition;
+}
+</script>
+
+<script id="fragmentShaderFreshnel" type="x-shader/x-fragment">
+uniform vec3 color;
+uniform samplerCube envMap;
+
+varying vec3 vReflect;
+varying float vReflectionFactor;
+
+void main() 
+{
+  vec4 envColor = textureCube( envMap, vec3( -vReflect.x, vReflect.yz ) );
+  gl_FragColor = vec4(mix(color, envColor.xyz, vec3(clamp( vReflectionFactor, 0.0, 1.0 ))), 1.0);
+}
+</script>
+
+<script id="vertexShader_dispersion" type="x-shader/x-vertex">
+	uniform	vec4	eyePos;
+	varying vec3  n;
+	varying vec3  e;
+
+	void main(void)
+	{
+		vec4 pos = modelViewMatrix * vec4( position, 1.0 );
+		gl_Position = projectionMatrix * pos;
+		
+		n = normalize ( normalMatrix * normal * mat3 ( modelViewMatrix ) );
+		e = normalize ( ( ( pos - eyePos ) * modelViewMatrix ).xyz );
+	}	
+</script>
+
+<script id="fragmentShader_dispersion" type="x-shader/x-fragment">
+uniform samplerCube envMap;
+uniform float disp_red;
+uniform float disp_green;
+uniform float disp_blue;
+
+varying vec3  n;
+varying vec3  e;
+
+void main (void)
+{
+	vec3 eta = vec3 ( disp_red, disp_green, disp_blue );
+
+  	vec3	en = normalize ( e );
+  	vec3	nn = normalize ( n );
+    vec3	r  = reflect   ( en, nn );
+
+    vec3 envColor = textureCube ( envMap, r ).rgb;
+
+    float fresnel = abs ( dot ( en, nn ) );
+
+    fresnel = clamp ( fresnel, 0.1, 0.9 );
+
+	vec3 	tRed   = refract ( en, nn, eta.r );
+	vec3 	tGreen = refract ( en, nn, eta.g );
+	vec3 	tBlue  = refract ( en, nn, eta.b );
+
+    vec3 	refractionColorRed   = textureCube ( envMap, tRed   ).rgb;
+    vec3 	refractionColorGreen = textureCube ( envMap, tGreen ).rgb;
+    vec3 	refractionColorBlue  = textureCube ( envMap, tBlue  ).rgb;
+	vec3	refractionColor      = vec3 ( refractionColorRed.r,
+	                                      refractionColorGreen.g,
+	                                      refractionColorBlue.b );
+    envColor = mix ( envColor, refractionColor, fresnel );
+
+    gl_FragColor = vec4 ( envColor, 1.0 );
+}
+</script>
+
+<script type="text/javascript">
+var vertices = [];
+var scene, renderer, camera;
+//var frustumSize = 20;
+
+var material_line;
+var mesh;
+var all_lines = [];
+var all_plgs = [];
+var mesh_freshnel, mesh_dispersion;
+var points = [];
+var colors = [];
+
+var kf = 70.0;
+var kf_lines = 70.5;
+
+var raycaster;
+var mouse = new THREE.Vector2(), INTERSECTED;
+mouse.x = 800;
+mouse.y = 500;
+var select_index = -1;
+var old_color;
+
+var btn_wireframe, btn_color, btn_light, btn_Freshnel, btn_Dispersion;
+var ctx;
+
+var S = 1.0;
+var R_X = 0.0;
+var R_Y = 0.0;
+
+var T_X = 0.0;
+var T_Y = 0.0;	
+
+var crown_image;
+var pavilion_image;
+var Girdle_image;
+var Number_image;
+
+function draw()
+{
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	var hud = document.createElement("canvas");
+	
+	document.body.appendChild(hud);
+	hud.width = width;
+	hud.height = height;
+	hud.style = "position: absolute; z-index: 0;"
+	ctx = hud.getContext('2d');
+	if (!ctx) 
+	{
+		console.log('Failed to get rendering context');
+		return;
+	}	
+	print_text_2d_3d();
+	
+	scene = new THREE.Scene();
+	camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+	camera.position.y = 400;	
+	
+	raycaster = new THREE.Raycaster();
+	renderer = new THREE.WebGLRenderer();
+	
+	document.body.appendChild(renderer.domElement);
+
+	renderer.setClearColor(0x220022, 1.0);
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	
+	var canvas = renderer.domElement;
+    document.onmousedown = handleMouseDown;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove;		
+	
+	document.addEventListener('wheel', onMouseWheel, false);
+	
+	camera.position.x = 0;
+	camera.position.y = 0;
+	camera.position.z = 200;
+	camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+	Light();
+
+	btn_wireframe = new Btn( "btn_wireframe1", "checkbox", "320px", "95px");
+	btn_wireframe.name.checked = true;
+	btn_wireframe.name.addEventListener("click", wireframe);
+	
+	btn_color = new Btn( "btn_radio1", "radio", "320px", "115px");
+	btn_color.name.checked = true;
+	btn_color.name.addEventListener("change", radio_color);	
+	
+	btn_light = new Btn( "btn_radio2", "radio", "320px", "135px");
+	btn_light.name.checked = false;
+	btn_light.name.addEventListener("change", radio_light);	
+	
+	btn_Freshnel = new Btn( "btn_radio3", "radio", "320px", "155px");
+	btn_Freshnel.name.checked = false;
+	btn_Freshnel.name.addEventListener("change", radio_freshnel);	
+	
+	btn_Dispersion = new Btn( "btn_radio4", "radio", "320px", "175px");
+	btn_Dispersion.name.checked = false;
+	btn_Dispersion.name.addEventListener("change", radio_dispersion);	
+	
+	material_line = new THREE.LineBasicMaterial({ color: 0x000000 });
+	create_meshes();
+	
+	for(var i = 0; i < all_plgs.length; i++) 
+	{
+		scene.add(all_plgs[i]);	
+	}
+	
+	var length = all_lines.length;
+	for(var i = 0; i < length; i++) 
+	{
+		scene.add(all_lines[i]);	
+	}
+	
+	pars_value();
+	cut_value();
+	
+	Add_Param_Buttons();
+
+	crown_image = new Image();
+	crown_image.width = 370;
+	crown_image.height = 280;
+	crown_image.style = "position: absolute; left: 1000px; top: 10px;";
+	crown_image.src = "MoonPear_crown.png";
+	crown_image.style.opacity = "0.8";
+	
+	crown_image.onload = function() 
+	{
+		document.body.appendChild(crown_image);
+	}
+	
+	crown_image.addEventListener('mouseover', function (e) 
+	{	
+		crown_image.style.cursor = "pointer";
+	});
+	
+	crown_image.addEventListener('mouseout', function (e) 
+	{	
+		crown_image.style.cursor = "default";
+	});
+	
+	crown_image.addEventListener('click', function (e) 
+	{
+		for (var i = 0; i < all_plgs.length; i++)
+		{
+			all_plgs[i].rotation.y = 0;
+			all_plgs[i].rotation.x = 0;
+			R_X = 0;
+			R_Y = 0;
+		}
+		
+		for (var i = 0; i < all_lines.length; i++)
+		{
+			all_lines[i].rotation.y = 0;
+			all_lines[i].rotation.x = 0;
+			R_X = 0;
+			R_Y = 0;
+		}
+		if (btn_Freshnel.name.checked == true)
+		{
+			mesh_freshnel.rotation.y = 0;
+			mesh_freshnel.rotation.x = 0;
+			R_X = 0;
+			R_Y = 0;
+		}
+		if (btn_Dispersion.name.checked == true)
+		{
+			mesh_dispersion.rotation.y = 0;
+			mesh_dispersion.rotation.x = 0;
+			R_X = 0;
+			R_Y = 0;
+		}		
+	});
+	
+	pavilion_image = new Image();
+	pavilion_image.width = 370;
+	pavilion_image.height = 280;
+	pavilion_image.style = "position: absolute; left: 1000px; top: 320px;";
+	pavilion_image.src = "MoonPear_pavilion.png";
+	pavilion_image.style.opacity = "0.8";
+	
+	pavilion_image.onload = function() 
+	{
+		document.body.appendChild(pavilion_image);
+	}
+	
+	pavilion_image.addEventListener('mouseover', function (e) 
+	{	
+		pavilion_image.style.cursor = "pointer";
+	});
+	
+	pavilion_image.addEventListener('mouseout', function (e) 
+	{	
+		pavilion_image.style.cursor = "default";
+	});
+	
+	pavilion_image.addEventListener('click', function (e) 
+	{
+		for (var i = 0; i < all_plgs.length; i++)
+		{
+			all_plgs[i].rotation.y = degToRad(180);
+			all_plgs[i].rotation.x = 0;
+			R_X = 0;
+			R_Y = degToRad(180);	
+		}
+		
+		for (var i = 0; i < all_lines.length; i++)
+		{
+			all_lines[i].rotation.y = degToRad(180);
+			all_lines[i].rotation.x = 0;
+			R_X = 0;
+			R_Y = degToRad(180);		
+		}
+		if (btn_Freshnel.name.checked == true)
+		{
+			mesh_freshnel.rotation.y = degToRad(180);
+			mesh_freshnel.rotation.x = 0;
+			R_X = 0;
+			R_Y = degToRad(180);
+		}
+		if (btn_Dispersion.name.checked == true)
+		{
+			mesh_dispersion.rotation.y = degToRad(180);
+			mesh_dispersion.rotation.x = 0;
+			R_X = 0;
+			R_Y = degToRad(180);
+		}
+	});
+
+	Girdle_image = new Image();
+	Girdle_image.width = 100;//70;
+	Girdle_image.height = 50;//30;
+	Girdle_image.style = "position: absolute; left: 245px; top: 210px;";
+	Girdle_image.src = "../Images/Girdle.png";
+	Girdle_image.style.opacity = "0.8";
+	
+	Girdle_image.onload = function() 
+	{
+		document.body.appendChild(Girdle_image);
+	}
+	
+	Girdle_image.addEventListener('click', function (e) 
+	{	
+		location.href = 'PearGirdle.html';
+	});
+	
+	Girdle_image.addEventListener('mouseover', function (e) 
+	{	
+		Girdle_image.src = "../Images/ClickMeGirdle.png"; // Click me to see   the girdle
+		Girdle_image.style.cursor = "pointer";
+	});
+	
+	Girdle_image.addEventListener('mouseout', function (e) 
+	{	
+		Girdle_image.src="../Images/Girdle.png";
+		Girdle_image.style.cursor = "default";
+	});
+	
+	Number_image = new Image();
+	Number_image.width = 100;
+	Number_image.height = 50;
+	Number_image.style = "position: absolute; left: 245px; top: 270px;";
+	Number_image.src = "../Images/Number.png";
+	Number_image.style.opacity = "0.8";
+	
+	Number_image.onload = function() 
+	{
+		document.body.appendChild(Number_image);
+	}
+	
+	Number_image.addEventListener('click', function (e) 
+	{	
+		location.href = 'MoonPear_text.html';
+	});
+	
+	Number_image.addEventListener('mouseover', function (e) 
+	{	
+		Number_image.src = "../Images/Number2.png";
+		Number_image.style.cursor = "pointer";
+	});
+	
+	Number_image.addEventListener('mouseout', function (e) 
+	{	
+		Number_image.src="../Images/Number.png";
+		Number_image.style.cursor = "default";
+	});
+
+	AddButtons();
+	AddButtonsRotateSize();
+	
+	buttonMoonPear.id.disabled = true;
+	buttonMoonPear.id.style.background = 'rgb(0, 255, 210)';	
+	
+	window.addEventListener('resize', onResize, false);
+
+	render();
+}
+
+function create_meshes()
+{
+	vertices.length = 0;
+	plgs.length = 0;
+	faces.length = 0;
+	colors.length = 0;
+	all_lines.length = 0;
+	all_plgs.length = 0;
+	points.length = 0;
+		
+	VerticesCalculation();
+	CreatePolyhedron();
+	
+	// Facets
+	var i, j;
+	var el = 0;
+
+	for (i = 0; i < vertices.length/3; i++)
+	{
+		var point3 = new THREE.Vector3();
+		for (j = 0; j < 3; j++)
+		{
+			point3.x = kf * vertices[el];
+			point3.y = kf * vertices[el + 1];
+			point3.z = kf * vertices[el + 2];
+		}
+		points.push(point3);
+		el = el + 3;
+	}
+	
+	facet_colors();
+	
+	// Meshes
+	for (i = 0; i < plgs.length; i++) // ????
+	{
+		var geometry = new THREE.Geometry();
+		geometry.vertices = points;
+		var plg = plgs[i]; 
+		var trgs = plg.IndexTriangle;
+		var nn = trgs.length;
+		for (var ii = 0; ii < trgs.length; ii++)
+		{
+			trgs[ii].color = colors[i];
+		}
+		geometry.faces = trgs;
+		geometry.computeFaceNormals();
+		
+		if (btn_light.name.checked == false)
+		{
+			var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors } );
+		}
+		else
+		{
+			var material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true, overdraw: 0.5, shininess: 0 } );
+		}
+		var mesh = new THREE.Mesh(geometry, material);	
+		mesh.index = i;
+		all_plgs.push(mesh);	
+	}	
+	
+	//      Lines
+	for (i = 0; i < plgs.length; i++)
+	{
+		var geometry_line = new THREE.Geometry();
+		var points_line = [];
+		var facet = plgs[i].VertexFacet;
+			
+		for (j = 0; j < facet.vertexes.length; j++)
+		{
+			var vert = facet.vertexes[j];
+			var point3 = new THREE.Vector3(kf_lines * vert[0], kf_lines * vert[1], kf_lines * vert[2]);
+			points_line.push(point3);
+		}
+		geometry_line.vertices = points_line;
+		var mesh_line = new THREE.Line(geometry_line, material_line);
+		if (btn_wireframe.name.checked == true)
+		{
+			all_lines.push(mesh_line);
+		}
+	}	
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+}			
+
+function recalc()
+{
+	var i;
+	
+	for(i = 0; i < all_plgs.length; i++) 
+	{
+		var mesh = all_plgs[i];
+		scene.remove(mesh);	
+	}
+	
+	for(i = 0; i < all_lines.length; i++) 
+	{
+		scene.remove(all_lines[i]);	
+	}				
+	
+	scene.remove(mesh_freshnel);
+	//mesh_freshnel.dispose();  // ????
+	
+	scene.remove(mesh_dispersion);
+	//mesh_dispersion.dispose();   // ????
+	
+	if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == false) )
+	{
+		create_meshes();
+	
+		for(i = 0; i < all_lines.length; i++) 
+		{
+			scene.add(all_lines[i]);	
+		}	
+		
+		for(i = 0; i < all_plgs.length; i++) 
+		{
+			scene.add(all_plgs[i]);	
+		}
+		
+		for (i = 0; i < all_plgs.length; i++)
+		{
+			all_plgs[i].scale.set( S, S, S );        
+		}
+			
+		for (i = 0; i < all_lines.length; i++)
+		{
+			all_lines[i].scale.set( S, S, S );
+		}
+		
+		for (i = 0; i < all_plgs.length; i++)
+		{
+			all_plgs[i].rotation.y = R_Y;	
+			all_plgs[i].rotation.x = R_X;
+			
+			all_plgs[i].position.y = T_Y;	
+			all_plgs[i].position.x = T_X;
+		}
+		
+		for (i = 0; i < all_lines.length; i++)
+		{
+			all_lines[i].rotation.y = R_Y;	
+			all_lines[i].rotation.x = R_X;
+			
+			all_lines[i].position.y = T_Y;	
+			all_lines[i].position.x = T_X;
+		}
+	}
+	else if( (btn_Freshnel.name.checked == true) && (btn_Dispersion.name.checked == false) )
+	{
+		create_CubeMap_Freshnel();
+		scene.add(mesh_freshnel);
+		mesh_freshnel.rotation.y = R_Y; 
+		mesh_freshnel.rotation.x = R_X;
+		mesh_freshnel.position.y = T_Y; 
+		mesh_freshnel.position.x = T_X;
+		mesh_freshnel.scale.set( S, S, S ); 		
+	}
+	else if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == true) )
+	{
+		create_CubeMap_Dispersion();
+		scene.add(mesh_dispersion);
+		mesh_dispersion.rotation.y = R_Y; 
+		mesh_dispersion.rotation.x = R_X;
+		mesh_dispersion.position.y = T_Y; 
+		mesh_dispersion.position.x = T_X;
+		mesh_dispersion.scale.set( S, S, S ); 
+	}
+	else
+	{
+	
+	}
+		
+	ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+	pars_value();
+	cut_value();
+	print_text_2d_3d();
+}
+
+function wireframe() { recalc();  }
+
+function radio_color() 
+{ 
+	if (btn_color.name.checked == true )
+	{
+		btn_Freshnel.name.checked = false;
+		btn_light.name.checked = false;
+		btn_Dispersion.name.checked = false;
+	}
+	recalc();
+}
+
+function radio_light() 
+{ 
+	if (btn_light.name.checked == true )
+	{	
+		btn_Freshnel.name.checked = false;
+		btn_color.name.checked = false;
+		btn_Dispersion.name.checked = false;
+	}
+	recalc();
+}
+
+function radio_freshnel() 
+{ 
+	if (btn_Freshnel.name.checked == true )
+	{
+		btn_color.name.checked = false;
+		btn_light.name.checked = false;
+		btn_Dispersion.name.checked = false;
+	}
+	recalc();
+}
+
+function radio_dispersion() 
+{ 
+	if (btn_Dispersion.name.checked == true )
+	{
+		btn_color.name.checked = false;
+		btn_light.name.checked = false;
+		btn_Freshnel.name.checked = false;
+	}
+	recalc();
+}
+
+function onDocumentMouseMove( event ) 
+{
+	event.preventDefault();
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+function print_text_index(index)
+{
+	ctx.font = '20px "Times New Roman"';
+	ctx.clearRect(850, 0, 1200, 700);
+	ctx.fillStyle = 'rgba(255, 200, 100, 1)'; 
+	ctx.fillText("Facet : " + index, 860, 100);
+	
+	var plg = plgs[index]; 
+	var face3 = plg.IndexTriangle[0];
+
+	var normal = face3.normal;
+	var x = normal.x;
+	var y = normal.y;
+	var z = normal.z;
+	var slope = Math.abs(z/Math.sqrt(x*x + y*y));
+	slope = Math.abs(slope);
+	slope = Math.atan(slope);
+	if (index != -1)
+	{	
+		var azim;
+		if ( (Math.abs(x) <= 0.00001) && (Math.abs(y) <= 0.00001) )
+		{
+			azim = 10001.0;
+		}
+		else if ( (x > 0.00001) && (y > 0.00001) )
+		{
+			azim = Math.atan(y, x) * 180.0 / Math.PI;
+		}
+		else if ( (x < - 0.00001) && (y > 0.00001) )
+		{
+			azim = ( Math.atan(-x, y) * 180.0 / Math.PI) + 90.0 ;
+		}
+		else if ( (x < -0.00001) && (y < -0.00001) )
+		{
+			azim = (Math.atan(-y, -x) * 180.0 / Math.PI) + 180.0;
+		}
+		else if ( (x > 0.00001) && (y < -0.00001) )
+		{
+			azim = (Math.atan(x, -y) * 180.0 / Math.PI) + 270.0;
+		}
+		else if ( (Math.abs(y) <= 0.00001) && (x > 0) )
+		{
+			azim = 0.0;
+		}
+		else if ( (Math.abs(y) <= 0.00001) && (x < 0) )
+		{
+			azim = 180.0;
+		}
+		else if ( (Math.abs(x) <= 0.00001) && (y > 0) )
+		{
+			azim = 90.0;
+		}
+		else if ( (Math.abs(x) <= 0.00001) && (y < 0) )
+		{
+			azim = 270.0;
+		}
+		if (azim > 10000.0)
+		{
+			azim = 0.0;
+		}
+		ctx.font = '20px "Times New Roman"';
+		var text_slope = roundNumber(90 - Math.degrees(slope), 2) + "°";
+		ctx.fillText("Slope : " + text_slope, 860, 130);
+		
+		var text_azim = roundNumber(azim, 2) + "°";
+		ctx.fillText("Azim. : " + text_azim, 860, 160);
+	}
+}			
+			
+function render() 
+{
+	if ( btn_Freshnel.name.checked == false )
+	{
+		raycaster.setFromCamera( mouse, camera );
+		var intersects = raycaster.intersectObjects( all_plgs );
+		if ( intersects.length > 0 ) 
+		{
+			if ( INTERSECTED != intersects[ 0 ].object ) 
+			{
+				//recalc();
+				index = intersects[ 0 ].object.index;
+				old_color = intersects[ 0 ].object.material.color;
+
+				if ( (index != select_index)  )
+				{
+					if (select_index != -1)
+					{
+						all_plgs[select_index].material.color = old_color;
+					}
+				}
+				print_text_index(index);
+				all_plgs[index].material.color = new THREE.Color("rgb(250, 0, 0)");
+				select_index = index;
+			}
+			else 
+			{
+				if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+				INTERSECTED = null;
+			}
+		}
+		requestAnimationFrame(render);
+		renderer.render(scene, camera);
+	}
+	else
+	{
+		requestAnimationFrame(render);
+		renderer.render(scene, camera);
+	}
+}			
+			
+function degToRad(degrees) 
+{
+	return degrees * Math.PI / 180;
+}
+	// Trackball
+var mouseDown = false;
+var lastMouseX = null;
+var lastMouseY = null;				
+
+function handleMouseDown(event) 
+{
+	mouseDown = true;
+	lastMouseX = event.clientX;
+	lastMouseY = event.clientY;
+}
+
+function handleMouseUp(event) 
+{
+	mouseDown = false;
+}
+
+function handleMouseMove(event) 
+{
+	if (!mouseDown) 
+	{
+		return;
+	}
+	if (event.altKey == true)
+	{
+		var newX = event.clientX;
+		var newY = event.clientY;
+
+		var deltaX = newX - lastMouseX;
+		var deltaY = newY - lastMouseY;
+
+		if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == false) )
+		{		
+			for (var i = 0; i < all_plgs.length; i++)
+			{
+				all_plgs[i].position.y = all_plgs[i].position.y - deltaY / 10;
+				all_plgs[i].position.x = all_plgs[i].position.x + deltaX / 10;
+			}
+			
+			for (var i = 0; i < all_lines.length; i++)
+			{
+				all_lines[i].position.y = all_lines[i].position.y - deltaY / 10;
+				all_lines[i].position.x = all_lines[i].position.x + deltaX / 10;
+			}		
+			
+			T_Y = all_plgs[0].position.y;
+			T_X = all_plgs[0].position.x;	
+		}
+		else if( (btn_Freshnel.name.checked == true) && (btn_Dispersion.name.checked == false) )
+		{
+			mesh_freshnel.position.y = mesh_freshnel.position.y - deltaY / 10;	
+			mesh_freshnel.position.x = mesh_freshnel.position.x + deltaX / 10;
+			
+			T_Y = mesh_freshnel.position.y;
+			T_X = mesh_freshnel.position.x;		
+		}
+		else if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == true) )
+		{			
+			mesh_dispersion.position.y = mesh_dispersion.position.y - degToRad(deltaY / 10);	
+			mesh_dispersion.position.x = mesh_dispersion.position.x + degToRad(deltaX / 10);		
+
+			T_Y = mesh_dispersion.position.y;
+			T_X = mesh_dispersion.position.x;
+		}		
+		else
+		{
+		
+		}
+		lastMouseX = newX
+		lastMouseY = newY;
+		return;
+	}
+	else
+	{
+		var newX = event.clientX;
+		var newY = event.clientY;
+
+		var deltaX = newX - lastMouseX;
+		var deltaY = newY - lastMouseY;
+		
+		if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == false) )
+		{
+			R_Y = all_plgs[0].rotation.y - degToRad(deltaX / 10);
+			R_X = all_plgs[0].rotation.x - degToRad(deltaY / 10);
+			
+				
+			for (var i = 0; i < all_plgs.length; i++)
+			{
+				all_plgs[i].rotation.y = all_plgs[i].rotation.y - degToRad(deltaX / 10);	
+				all_plgs[i].rotation.x = all_plgs[i].rotation.x - degToRad(deltaY / 10);
+			}
+			
+			for (var i = 0; i < all_lines.length; i++)
+			{
+				all_lines[i].rotation.y = all_lines[i].rotation.y - degToRad(deltaX / 10);	
+				all_lines[i].rotation.x = all_lines[i].rotation.x - degToRad(deltaY / 10);
+			}
+		}
+		else if( (btn_Freshnel.name.checked == true) && (btn_Dispersion.name.checked == false) )
+		{
+			R_Y = mesh_freshnel.rotation.y - degToRad(deltaX / 10);
+			R_X = mesh_freshnel.rotation.x - degToRad(deltaY / 10);	
+			
+			mesh_freshnel.rotation.y = mesh_freshnel.rotation.y - degToRad(deltaX / 10);	
+			mesh_freshnel.rotation.x = mesh_freshnel.rotation.x - degToRad(deltaY / 10);		
+		}
+		else if( (btn_Freshnel.name.checked == false) && (btn_Dispersion.name.checked == true) )
+		{
+			R_Y = mesh_dispersion.rotation.y - degToRad(deltaX / 10);
+			R_X = mesh_dispersion.rotation.x - degToRad(deltaY / 10);	
+			
+			mesh_dispersion.rotation.y = mesh_dispersion.rotation.y - degToRad(deltaX / 10);	
+			mesh_dispersion.rotation.x = mesh_dispersion.rotation.x - degToRad(deltaY / 10);		
+		}
+		else
+		{
+		
+		}
+		lastMouseX = newX
+		lastMouseY = newY;
+	}
+}
+
+function onMouseWheel(event)
+{
+	if( event.deltaY !== undefined )
+	{
+		delta = - Math.sign( event.deltaY ) * 6;
+	}
+	if (delta > 0)
+	{
+		S = S * 1.05;
+	}
+	else 
+	{
+		S = S * 0.95;
+	}
+	
+	for (var i = 0; i < all_plgs.length; i++)
+	{
+		all_plgs[i].scale.set( S, S, S );        
+	}
+		
+	for (var i = 0; i < all_lines.length; i++)
+	{
+		all_lines[i].scale.set( S, S, S );
+	}	
+	
+	if (btn_Freshnel.name.checked == true)
+	{
+		mesh_freshnel.scale.set( S, S, S );
+	}
+	if (btn_Dispersion.name.checked == true)
+	{
+		mesh_dispersion.scale.set( S, S, S );
+	}
+	
+	return false;
+}
+
+function isCorrect()
+{	
+	var i, j;
+	for (i = 0; i < plgs.length; i++)
+	{
+		var plg = plgs[i]; 
+		var face3 = plg.IndexTriangle[0];
+
+		var ind1 = face3.a;
+		var ind2 = face3.b;
+		var ind3 = face3.c;
+		
+		var pt1 = new Point3D(points[ind1].x, points[ind1].y, points[ind1].z);
+		var pt2 = new Point3D(points[ind2].x, points[ind2].y, points[ind2].z);
+		var pt3 = new Point3D(points[ind3].x, points[ind3].y, points[ind3].z);
+		
+		var plane = new Plane3D();
+		plane.CreatePlaneThreePoints(pt1, pt2, pt3);
+		
+		// Проверка каждой вершины огранки
+		for (j = 0; j < points.length; j++)
+		{
+			var pt_test = new Point3D(points[j].x, points[j].y, points[j].z);
+			var dist = plane.DistancePoint(pt_test);
+			if (dist > 0.000001)
+			{
+				// not convex
+				return -1;
+			}
+		}
+	}
+}
+
+function create_CubeMap_Freshnel()
+{
+	var urls = [
+
+		'../CubeMap/posx.jpg',
+		'../CubeMap/negx.jpg',
+		'../CubeMap/posy.jpg',
+		'../CubeMap/negy.jpg',
+		'../CubeMap/posz.jpg',
+		'../CubeMap/negz.jpg'
+	];	
+	
+    var textureCube = THREE.ImageUtils.loadTextureCube( urls );
+	
+    var skybox = THREE.ShaderLib[ "cube" ];
+    skybox.uniforms[ "tCube" ].value = textureCube;
+
+    var skymaterial = new THREE.ShaderMaterial( {
+
+      fragmentShader: skybox.fragmentShaderFreshnel,
+      vertexShader: skybox.vertexShaderFreshnel,
+      uniforms: skybox.uniforms,
+      depthWrite: false,
+      side: THREE.BackSide
+
+    } );
+
+    var sky = new THREE.Mesh( new THREE.BoxGeometry
+							( 500, 500, 500 ), skymaterial );
+    sky.visible = false;
+    scene.add( sky );
+
+    var uniforms = {
+        color: {
+          type: "c",
+          value: new THREE.Color(0x0000ff),
+        },
+        envMap: {
+          type: "t",
+          value: textureCube
+        },
+        fresnelBias: {
+          type: "f",
+          value: 0.1,
+          min: 0.0, 
+          max: 1.0 
+        },
+        fresnelScale: {
+          type: "f",
+          value: 1.0,
+          min: 0.0, 
+          max: 10.0 
+        },
+        fresnelPower: {
+          type: 'f',
+          value: 0.1, //2.0,
+          min: 0.0, 
+          max: 10.0 
+        }
+    };
+    var vertexShaderFreshnel = document.getElementById('vertexShaderFreshnel').text;
+    var fragmentShaderFreshnel = document.getElementById('fragmentShaderFreshnel').text;
+    var material_freshnel = new THREE.ShaderMaterial(
+        {
+          uniforms : uniforms,
+          vertexShader : vertexShaderFreshnel,
+          fragmentShader : fragmentShaderFreshnel,
+        });
+
+	scene.remove(mesh_freshnel);
+	
+	vertices.length = 0;
+	plgs.length = 0;
+	faces.length = 0;
+	colors.length = 0;
+	//all_lines.length = 0;
+	all_plgs.length = 0;
+	points.length = 0;
+
+	VerticesCalculation();
+	CreatePolyhedron();
+	
+	// Facets
+	points.length = 0;	
+	var i, j;
+	var el = 0;
+	for (i = 0; i < vertices.length/3; i++)
+	{
+		var point3 = new THREE.Vector3();
+		for (j = 0; j < 3; j++)
+		{
+			point3.x = kf * vertices[el];
+			point3.y = kf * vertices[el + 1];
+			point3.z = kf * vertices[el + 2];
+		}
+		points.push(point3);
+		el = el + 3;
+	}
+			
+	var geometry_freshnel = new THREE.Geometry();
+	geometry_freshnel.vertices = points;
+	geometry_freshnel.faces = faces;
+	geometry_freshnel.computeFaceNormals();
+	//geometry_freshnel.computeVertexNormals();
+	mesh_freshnel = new THREE.Mesh(geometry_freshnel, material_freshnel);
+}
+
+function create_CubeMap_Dispersion()
+{
+	var urls = [
+
+		'../CubeMap/posx.jpg',
+		'../CubeMap/negx.jpg',
+		'../CubeMap/posy.jpg',
+		'../CubeMap/negy.jpg',
+		'../CubeMap/posz.jpg',
+		'../CubeMap/negz.jpg'
+	];	
+		
+    var cubemap = THREE.ImageUtils.loadTextureCube( urls );
+	cubemap.format = THREE.RGBFormat;
+	
+	var shader = THREE.ShaderLib["cube"];
+	shader.uniforms["tCube"].value = cubemap;
+
+	var material_cubemap = new THREE.ShaderMaterial({		
+		fragmentShader: shader.fragmentShader,
+		vertexShader: shader.vertexShader,
+		uniforms: shader.uniforms,
+		depthWrite: false,
+		side: THREE.DoubleSide
+	});
+
+	var skybox = new THREE.Mesh(new THREE.BoxGeometry(30000, 30000, 30000, 16, 16, 16), material_cubemap);	
+	//skybox.visible = false;	
+	scene.add(skybox);
+	
+	var RD = 0.4;
+	var GD = 0.5;
+	var BD = 0.9;
+	
+	// Shaders for models
+	uniforms = {
+		time: { type: "f", value: 1.0 },
+		eyePos: 	{ type: "v3", value: new THREE.Vector3() },
+		disp_red:	{ type: "f", value: RD },
+		disp_green:	{ type: "f", value: GD },
+		disp_blue:	{ type: "f", value: BD },
+		envMap:		{ type: "samplerCube", value: cubemap }  // ????
+	};	
+
+	uniforms.eyePos.value.x = 0.0;
+	uniforms.eyePos.value.y = 0.0;
+	uniforms.eyePos.value.z = 200.0;
+
+    var vertexShaderDispersion = document.getElementById('vertexShader_dispersion').text;
+    var fragmentShaderDispersion = document.getElementById('fragmentShader_dispersion').text;	
+	
+	// Material for models
+	var material_dispersion = new THREE.ShaderMaterial( {
+		uniforms: uniforms,
+		vertexShader: vertexShaderDispersion,
+		fragmentShader: fragmentShaderDispersion
+	});
+	
+	scene.remove(mesh_dispersion);
+	
+	vertices.length = 0;
+	plgs.length = 0;
+	faces.length = 0;
+	colors.length = 0;
+	//all_lines.length = 0;
+	all_plgs.length = 0;
+	points.length = 0;
+
+	VerticesCalculation();
+	CreatePolyhedron();
+	
+	// Facets
+	points.length = 0;	
+	var i, j;
+	var el = 0;
+	for (i = 0; i < vertices.length/3; i++)
+	{
+		var point3 = new THREE.Vector3();
+		for (j = 0; j < 3; j++)
+		{
+			point3.x = kf * vertices[el];
+			point3.y = kf * vertices[el + 1];
+			point3.z = kf * vertices[el + 2];
+		}
+		points.push(point3);
+		el = el + 3;
+	}
+			
+	var geometry_dispersion = new THREE.Geometry();
+	geometry_dispersion.vertices = points;
+	geometry_dispersion.faces = faces;
+	geometry_dispersion.computeFaceNormals();
+	//geometry_dispersion.computeVertexNormals();
+	mesh_dispersion = new THREE.Mesh(geometry_dispersion, material_dispersion);
+}
+
+function roundNumber(num, places) 
+{
+	return ( Math.round(num * Math.pow(10, places)) / Math.pow(10, places) );
+}
+
+function onResize() 
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	//recalc();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.onload = draw;
+
+</script>
+</body>
+</html>

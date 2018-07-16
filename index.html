@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Diamond cuts</title>
+<!--link rel="stylesheet" type="text/css" href="style.css" /-->
+<style>
+	#container 
+	{
+		min-width: 700px;
+	}
+	body 
+	{
+		background: url("Cuts_images/all_images.png");
+	}
+
+	div
+	{
+		background: rgba(220, 220, 250, 0.7); /* Цвет фона */
+		color: #fff; /* Цвет текста */
+		/* padding: 1px;*/ /* Поля вокруг текста */
+	}
+   
+	#id_Octagon:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+	}
+	
+	#id_Octagon:hover 
+	{
+		background-color: #88ffff;
+	}
+	#id_Octagon 
+	{
+		width: 240px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}	
+	
+    #id_Brilliant:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_Brilliant:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_Brilliant 
+	{
+		width: 210px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}	
+	
+    #id_MoonMarquise:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_MoonMarquise:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_MoonMarquise 
+	{
+		width: 380px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}
+	
+    #id_MoonPear:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_MoonPear:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_MoonPear 
+	{
+		width: 310px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}	
+	
+    #id_Heart:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_Heart:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_Heart
+	{
+		width: 190px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}		
+	
+    #id_Maltese:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_Maltese:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_Maltese
+	{
+		width: 340px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}		
+	
+    #id_PentagonalStar:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_PentagonalStar:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_PentagonalStar
+	{
+		width: 370px; height: 55px;
+		border: 1px solid #7a7b7e; 
+		background: #ffdddd; 
+		color: #5000ff;
+		border-radius: 12px;
+		font:30pt Arial, Helvetica, sans-serif;
+		text-align: left;
+		cursor:pointer;
+		opacity: 0.8;
+	}
+
+	
+    #id_ucoz:active 
+	{
+		font-weight: bold;
+		border-color: #777777;
+    }
+	#id_ucoz:hover 
+	{
+		background-color: #88ffff;
+    }
+	#id_ucoz
+	{
+		width: 350px; height: 30px;
+		border: 3px solid #0000ff; 
+		background: #ffff00; 
+		color: #ff0000;
+		border-radius: 12px;
+		font:16pt Arial, Helvetica, sans-serif;
+		font-weight: bold;
+		text-align: middle;
+		cursor:pointer;
+		opacity: 0.6;
+	}	
+</style> 
+
+ <script>
+ 	function Octagon_ref() 
+	{
+		location.href = 'Octagon/Octagon.html';
+    }
+	
+ 	function Brilliant_ref() 
+	{
+		location.href = 'Brilliant/Brilliant.html';
+    }
+	
+ 	function MoonMarquise_ref() 
+	{
+		location.href = 'MoonMarquise/MoonMarquise.html';
+    }
+	
+ 	function MoonPear_ref() 
+	{
+		location.href = 'MoonPear/MoonPear.html';
+    }
+
+ 	function Heart_ref() 
+	{
+		location.href = 'Heart/Heart.html';
+    }
+
+ 	function Maltese_ref() 
+	{
+		location.href = 'Maltese/Maltese.html';
+    }	
+	
+ 	function PentagonalStar_ref() 
+	{
+		location.href = 'WavyPentagonalStar/WavyPentagonalStar.html';
+    }
+	
+ 	function ucoz_ref() 
+	{
+		location.href = 'http://diamond3d.ucoz.ru/Shine/Shine.html';
+    }
+</script>  
+  
+</head>
+ 
+<body>
+<div>
+<h3 align = "center" style="color:#5000ff">Diamond Cuts</h3>
+  
+<p align = "center" style="color:#000000" style= "font-weight:bold";> My e-mail:  &nbsp;&nbsp;&nbsp;  <b> wd3d53@gmail.com </b>  &nbsp;&nbsp;&nbsp; (<em> Vladimir </em>)</p>
+
+ <p align = "center">
+<button id="id_Octagon" onclick="Octagon_ref()" >
+Octagon
+<img src="Cuts_images/Octagon_img.png" alt="octagon" height="50px" width = "50px" style="vertical-align:middle">
+</button>	
+</p>  
+
+ <p align = "center">
+<button id="id_Brilliant" onclick="Brilliant_ref()">  
+Brilliant
+<img src="Cuts_images/Brilliant_img.png" alt="Brilliant" height="50px" width = "50px" style="vertical-align:middle">
+</button>
+</p> 
+
+<p align = "center">
+<button id="id_MoonMarquise" onclick="MoonMarquise_ref()"> 
+MoonMarquise	  
+<img src="Cuts_images/MoonMarquise_img.png" alt="MoonMarquise" height="50px" width = "80px" style="vertical-align:middle">
+</button>
+</p>  
+
+<p align = "center">
+<button id="id_MoonPear" onclick="MoonPear_ref()"> 
+MoonPear
+<img src="Cuts_images/MoonPear_img.png" alt="MoonPear" height="50px" width = "80px" style="vertical-align:middle">
+</button>
+</p>  
+
+<p align = "center">
+<button id="id_Heart" onclick="Heart_ref()">	  
+Heart
+<img src="Cuts_images/Heart_img.png" alt="Heart" height="50px" width = "50px" style="vertical-align:middle">
+</button>
+</p> 
+
+<p align = "center">
+<button id="id_Maltese" onclick="Maltese_ref()"> 
+Maltese Cross 
+<img src="Cuts_images/Maltese_img.png" alt="Maltese" height="50px" width = "50px" style="vertical-align:middle">
+</button>
+</p> 
+
+<p align = "center">
+<button id="id_PentagonalStar" onclick="PentagonalStar_ref()">
+PentagonalStar
+<img src="Cuts_images/PentagonalStar_img.png" alt="PentagonalStar" height="50px" width = "50px" style="vertical-align:middle">
+</button>
+
+<p align = "center">
+<button id="id_ucoz" onclick="ucoz_ref()">
+Shine on Your Crazy Diamond !
+</button>
+</p> 
+</div>
+
+</body>
+</html>

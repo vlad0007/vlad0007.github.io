@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Marquise Girdle</title>
+	<script src="../libs/WebGeometry.js"></script>
+	<script src="../libs/buttons.js"></script>
+	<script>
+		var girdle = [64];
+		var DEGREE = 0.01745329251994;
+		var M_PI = 3.14159265358979323846;
+
+		var ctx;
+		var btn_lw_plus, btn_lw_minus; 
+		var btn_square_deviation_plus, btn_square_deviation_minus; 
+		var btn_vp_minus, btn_vp_plus;
+		var btn_return;
+		
+		var gd_x = [64];
+		var gd_y = [64];		
+		
+		var lw = 2; 
+		var square_deviation = 0.0; // квадратичность рундиста
+		var vp = 5.0*DEGREE;
+			
+		var canvas;
+		// Canvas coordinates
+		var xC = 700; // Centre x
+		var yC = 300; // Centre y
+		var SCALE = 100;  // SCALE
+		
+		var a, b, q, t, u, gamma, fi, psi;
+		
+		var formula;
+		
+		var btn_lw_minus, btn_lw_plus;
+			
+		function lw_minus() { lw = lw - 0.05; redraw();}
+		function lw_plus() { lw = lw + 0.05; redraw();}
+		
+		function square_deviation_minus() 
+		{ 
+			square_deviation = square_deviation - 0.05;
+			if ( square_deviation < -1 || square_deviation >= 0.995 )
+			{
+				square_deviation = square_deviation + 0.05;
+				return;
+			}
+			redraw();
+		}
+		
+		function square_deviation_plus() 
+		{ 
+			square_deviation = square_deviation + 0.05;
+			if ( square_deviation < -1 || square_deviation >= 0.995 )
+			{
+				square_deviation = square_deviation - 0.05;
+				return;
+			}
+			redraw();
+		}		
+		
+		function vp_minus() 
+		{ 
+			vp = vp - DEGREE; 
+			var u = lw;
+			var fi = Math.asin ( ( u + u ) / ( u * u + 1.0) );
+			var psi = fi + vp;
+			var t = u * Math.tan(psi);
+			if ( t <= 2.0) 
+			{
+				vp = vp + DEGREE;
+				return;	
+			}				
+			redraw();
+		}
+
+		function vp_plus() 
+		{ 
+			vp = vp + DEGREE; 
+			var u = lw;
+			var fi = Math.asin ( ( u + u ) / ( u * u + 1.0) );
+			var psi = fi + vp;
+			var t = u * Math.tan(psi);
+			if ( t <= 2.0) 
+			{
+				vp = vp - DEGREE;
+				return;	
+			}
+			redraw();
+		}
+	
+		function fx(val)
+		{
+			var res = val * SCALE + xC;
+			return res;
+		}
+		
+		function fy(val)
+		{
+			var res = - val * SCALE + yC;
+			return res;
+		}		
+			
+		function initiate(lw)
+		{
+			canvas = document.createElement('canvas');
+			canvas.width = 1200;
+			canvas.height = 600;
+			canvas.style.position = "absolute";
+			canvas.style.border = "1px solid";
+			var body = document.getElementsByTagName("body")[0];
+			body.appendChild(canvas);
+			ctx = canvas.getContext("2d");
+
+//			var img = document.createElement('img');
+//			img.setAttribute('src', "Text_1.png");
+/*			
+			img.addEventListener("load", function()
+											{
+												ctx.drawImage(img, 10, 200, 380, 300);
+												formula = ctx.getImageData(10, 200, 380, 300);
+											});
+*/											
+			init_girdle();
+			draw_girdle();
+			construction();
+			pars_value();
+						
+			btn_return = new Btn("Return to main view MoonMarquise", "button", "50px", "360px" );
+			btn_return.id.style.width = "260px";
+			btn_return.id.style.height = "50px";
+			btn_return.id.style.background= '#99ddff';
+			btn_return.id.style.borderRadius = "10px";
+			btn_return.id.style.cursor = "pointer";
+			btn_return.id.style.fontSize = "14px";
+			btn_return.id.style.fontWeight = "bold";
+			btn_return.id.style.color = '#000000';;
+			btn_return.id.style.borderWidth = "2px";
+			btn_return.id.style.borderColor = "red";
+			btn_return.name.addEventListener("click", function (){document.location.href = 'MoonMarquise.html';});	
+
+			AddButtons();
+			AddButtonsPositionSize();
+		}
+
+		function draw_girdle()
+		{
+			var i;
+
+			for(i = 0; i < 64; i++)
+			{
+				gd_x[i] = fx(girdle[i][0]);
+				gd_y[i] = fy(girdle[i][1]);
+			}				
+
+	
+			// Draw girdle
+			ctx.beginPath();
+			ctx.moveTo(gd_x[0], gd_y[0]);
+			for (i = 0; i < 64; i++)
+			{
+				ctx.lineTo(gd_x[i], gd_y[i]);
+			}
+			ctx.closePath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#00f';
+			//ctx.fillStyle = '#fdf';
+			//ctx.fill();
+			ctx.stroke();	
+			ctx.lineWidth = 1;
+			
+			
+			// Text and vertexes
+			ctx.fillStyle = '#00f';
+			ctx.strokeStyle = "#F00";
+			ctx.font = "italic 10pt Arial";
+			
+			for (i = 0; i < 64; i = i + 1)
+			{
+				if ( (i == 0) ||  (i == 4)  ||  (i == 8) || (i == 12) || (i == 16) || (i == 20) ||
+					 (i == 24) || (i == 28) || (i == 32) || (i == 36) || (i == 40) ||
+					 (i == 44) || (i == 48) || (i == 52) || (i == 56) || (i == 60) )
+				{
+					rsp(girdle[i], 7);
+				}
+				else
+				{
+					rsp(girdle[i], 5);
+				}
+			}		
+			
+			txt2("0", girdle[0], "rt", "up");
+			txt2("4", girdle[4], "rt", "md");
+			txt2("8", girdle[8], "rt", "md");
+			txt2("12", girdle[12], "rt", "md");
+			txt2("16", girdle[16], "md", "dn");
+			txt2("20", girdle[20], "lt", "md");
+			txt2("24", girdle[24], "lt", "md");
+			txt2("28", girdle[28], "lt", "md");
+			txt2("32", girdle[32], "lt", "up");
+			
+			txt("36", girdle[36], "lt", "up");
+			txt("40", girdle[40], "lt", "up");
+			txt("44", girdle[44], "lt", "up");
+			txt("48", girdle[48], "md", "up");
+			txt("52", girdle[52], "rt", "up");
+			txt("56", girdle[56], "rt", "up");
+			txt("60", girdle[60], "rt", "up");
+		}
+			
+		function construction()	
+		{
+			var O = [0,0];
+			ctx.fillStyle = '#f00';
+			rsp(O, 5);
+			txt("O", O, "lt", "up");			
+			
+			var s = (u * u - 1)/2;
+			var A = [-s,0];
+			ctx.fillStyle = '#f00';
+			rsp(A, 5);
+			txt("A", A, "lt", "up");			
+			
+		
+			var C = [1,0];
+			ctx.fillStyle = '#f00';
+			rsp(C, 5);
+			txt("C", C, "lt", "up");
+		
+			var O1 = [C[0] - a, 0];
+			ctx.fillStyle = '#f00';
+			rsp(O1, 5);		
+			txt("O1", O1, "lt", "up");
+			
+			var O2 = [-C[0] + a, 0];
+			ctx.fillStyle = '#f00';
+			rsp(O2, 5);		
+			txt("O2", O2, "lt", "up");
+		
+			var B = [0, -u];
+			ctx.fillStyle = '#f00';
+			rsp(B, 8);
+			txt2("B", B, "md", "up");
+			
+			ctx.strokeStyle = '#000';	
+			drawEllipse(O1[0], O1[1], a, b)
+			drawEllipse(O2[0], O2[1], a, b)
+			ctx.beginPath();
+			ctx.arc(fx(-s), fy(0), (s+1)*SCALE, 0, Math.PI * 2, true);
+			
+			ctx.fillStyle = '#f00';
+			var M = [t, 0];
+			rsp(M, 4);
+			txt("M", M, "md", "up");
+			
+			var pt1 = line(M, B, 5);
+			var pt2 = line(B, M, -4);
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(pt1[0]), fy(pt1[1]));
+			ctx.lineTo(fx(pt2[0]), fy(pt2[1]));
+			
+			var pt3 = line(A, B, 2);
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(A[0]), fy(A[1]));
+			ctx.lineTo(fx(pt3[0]), fy(pt3[1]));
+			
+			var ln_A_B = new Line2D(A, B);
+			var ln_A_B_n = ln_A_B.CreateNormalLinePoint(B);
+			var ln_hor_1 = new Line2D(new Point2D(-3, -3), new Point2D(3, -3));
+			var ln_hor_2 = new Line2D(new Point2D(-3, 3), new Point2D(3, 3));
+			var pt4 = ln_A_B_n.IntersectionTwoLines(ln_hor_1);
+			var pt5 = ln_A_B_n.IntersectionTwoLines(ln_hor_2);
+			var line_X = new Line2D(new Point2D(-3, 0), new Point2D(3, 0));
+			var F = ln_A_B_n.IntersectionTwoLines(line_X);
+			rsp(F, 4);
+			txt("F", F, "md", "dn");
+			
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(pt4[0]), fy(pt4[1]));
+			ctx.lineTo(fx(pt5[0]), fy(pt5[1]));
+	
+			// Axis x, y
+
+			ctx.moveTo(fx(-10), fy(0));
+			ctx.lineTo(fx(10), fy(0));
+			ctx.moveTo(fx(0), fy(-3));
+			ctx.lineTo(fx(0), fy(3));
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';	
+			ctx.stroke();
+			
+			// ang
+			
+			
+			//txt(s_fi, M, "md", "up");
+			var fi_1 = Math.asin(u/(s+1));
+			draw_angle(B, 1.5*Math.PI, fi_1 - Math.PI/2, 130);
+			
+			var s_fi = String.fromCharCode(966);
+			ctx.fillText(s_fi, fx(B[0]) + 50, fy(B[1]) - 125);		
+			
+			
+			var psi_1 = Math.asin(u/(s+1));
+			draw_angle(B, 1.5*Math.PI, fi_1 - Math.PI/2 + vp, 190);
+			var s_psi = String.fromCharCode(968);
+			ctx.fillText(s_psi, fx(B[0]) + 50, fy(B[1]) - 190);	
+			
+			var s_vp = String.fromCharCode(948);
+			if (vp >= 0)
+			{
+				draw_angle(B, fi_1 - Math.PI/2, fi_1 - Math.PI/2 + vp, 250);
+				ctx.fillText(s_vp, fx(B[0]) + 210, fy(B[1]) - 140);
+			}
+			else 
+			{
+				draw_angle(B, fi_1 - Math.PI/2 + vp, fi_1 - Math.PI/2, 250);
+				ctx.fillText(s_vp, fx(B[0]) + 175, fy(B[1]) - 150);
+			}
+			
+			var text_circle = [-s, s+1];
+			ctx.fillStyle = '#000';
+			txt("circle", text_circle, "rt", "up");
+			
+			var text_ellipse_1 = [O1[0], -b];
+			txt("ellipse 1", text_ellipse_1, "lt", "up");
+			
+			var text_ellipse_2 = [O2[0], -b];
+			txt("ellipse 2", text_ellipse_2, "rt", "up");
+			
+			
+			///////
+			ctx.lineWidth = 0.5;
+			ctx.moveTo(fx(O1[0]), fy(O1[1]+4));
+			ctx.lineTo(fx(O1[0]), fy(O1[1]-7));
+			ctx.strokeStyle = '#000';	
+			ctx.stroke();
+			
+			ctx.lineWidth = 0.5;
+			ctx.moveTo(fx(B[0]-4), fy(B[1]));
+			ctx.lineTo(fx(B[0]+4), fy(B[1]));
+			ctx.strokeStyle = '#000';	
+			ctx.stroke();			
+
+			var ln_O1_vert = new Line2D(O1, new Point2D(O1[0], 1));
+			var ln_B_M = new Line2D(B, M);
+			var V = ln_B_M.IntersectionTwoLines(ln_O1_vert);
+			ctx.fillStyle = '#f00';
+			rsp(V, 6);
+			txt("V", V, "lt", "dn");
+			
+			var ln_B_hor = new Line2D(B, new Point2D(1, B[1]));
+			var W = ln_B_hor.IntersectionTwoLines(ln_O1_vert);
+			rsp(W, 6);
+			txt("W", W, "lt", "up");			
+		}
+		
+		function draw_angle(point, ang_b, ang_e, radius)
+		{
+			ctx.beginPath();
+			ctx.arc(fx(point[0]), fy(point[1]), radius, ang_b, ang_e, false);
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+		}
+		
+		function init_girdle()
+		{
+			// Принимаем ширину рундиста огранки равной 2.
+			// Следовательно длина огранки равна lw*2.
+			// Поэтому координата Y точки B равна lw.
+			// Обозначим эту величину буквой u.
+			u = lw;
+			if ( u < 0 ) 
+				return null;
+
+			// Находим угол наклона касательной к окружности в точке B к оси OY
+			// fi = asin(OB/AB) или
+			// fi = asin(OB/AC) или 
+			// fi = asin(u/(OA + 1)
+			// Обозначим s = OA, тогда 
+			// fi = asin(u/(s + 1)
+			// Так как прямоугольник AOB прямоугольный, то s*s + u*u = (s+1)*(s+1)
+			// следовательно s = (u*u - 1)/2 и поэтому:
+			fi = Math.asin ( ( u + u ) / ( u * u + 1.0) );
+			// Находим угол наклона касательной к эллипсу в точке B к оси OY
+			psi = fi + vp;  // δ = vp
+			// Находим координату X точки пересечения касательной к эллипсу с осью OX.
+			t = u * Math.tan(psi);
+			if ( t <= 2.0) 
+				return null;
+			// Находим величину полуоси эллипса по горизонтали
+			a = ( t - 1.0 ) / ( t - 2.0 );
+			// Так как ширину рундиста огранки приняли равной 2, то координата X 
+			// точки C равна 1. Следовательно величина отрезка O - O1 равна q.
+			q = a - 1.0;
+			// Находим величину полуоси эллипса по вертикали
+			b = u * ( t - 1.0 ) / Math.sqrt( t * t - ( t + t ) );
+			
+			//  При расчете формы рундиста и получении формул используемых
+			// для этого расчета (полуоси эллипса a и b) использовалось свйство касательной к эллипсу.
+			// Смотри, напрмер, Н.И.Мусхелишвили "Курс аналитической геометрии" изд.5 § 241.
+			// В обозначениях используемых при выводе рундиста на экран это свойство 
+			// записывается следующим образом:
+			// O1 - координата центра ellipse_1
+			// M - координата X пересечения прямой касательной к ellipse_1 в точке B
+			// C - координата X пересечения линии ellipse_1 с осью OX
+			// a - величина горизонтальной полуоси эллипса ellipse_1			
+			/*
+			var O = new Point2D(0,0);
+			var C = new Point2D(1,0);
+			var O1 = new Point2D(C[0] - a, 0);
+			var M = new Point2D(t, 0);
+			var d1 = O1.Distance(O);
+			var d2 = O1.Distance(M);
+			var a2 = a * a;  		
+			var ratio = (a*a) / ( d1*d2); // ratio = 1 
+			*/
+			//********************************************************************
+			//      Используя введенные ранее обозначения:
+			// q * (t + q) = a * a    - Это и есть свойство касательной к эллипсу.
+			// Подставив в последнее выражение значение для q = a – 1.0,
+			// получим значение для полуоси эллипса a = (t-1)/(t-2).
+            // Для расчета величины полуоси эллипса b следут провести вертикальную
+			// прямую через центр эллипса O1 и зафиксировать 
+			// точку пересечения V этой прямой с касательной к эллипсу.
+			// Затем, из рассмотрения подобных треугольников BWV и MOB
+			// можно записать пропорцию  p / u = q / t   где p - длина отрезка WV.
+			// Отсюда p = u * q / t
+			// Исходя из вышеприведенного свойства касательной к эллипсу в точке B
+			// можно записать  u * (p + u) = b * b 
+			// Теперь зная, как вычисляются величины a, p, u, q, t мы можем записать
+			// после некоторых преобразований значение для полуоси b:
+			//      b = u * ( t - 1.0 ) / Math.sqrt( t * t - ( t + t ) );
+			//************************************************************************
+			
+			var p = 2 / (1 - square_deviation);  // square_deviation = 0
+
+			// Расчет сегментов на рундисте.
+			// В MoonMarquise_verts переменная gamma носит название interval_all .
+			gamma = Math.acos ( q / a ); 
+			// В отличии от MoonMarquise.html в этой программе рундист делится на фиксированные части.
+			var delta = gamma/16;
+
+			var i = 0;
+			var ang_currrent = 0.0;
+
+			var x, y, w;
+			for ( i = 0; i < 17; i++ )
+			{
+				x = Math.cos(ang_currrent);
+				y = -Math.sin(ang_currrent);
+
+				w = Math.pow (Math.abs(x), p) + Math.pow(Math.abs (y), p);
+				w = 1 / Math.pow ( w, 1/p );		
+				
+				girdle[i] = new Point2D( a * w * x - q, b * w * y);
+				ang_currrent = ang_currrent + delta;
+			}
+			
+			for ( i = 1; i < 17; i++ )
+			{
+				girdle[i+16] = new Point2D(-girdle[16-i][0], girdle[16-i][1]);
+			}
+			
+			for ( i = 1; i < 17; i++ )
+			{
+				girdle[i+32] = new Point2D(girdle[32-i][0], -girdle[32-i][1]);
+			}
+
+			for ( i = 1; i < 17; i++ )
+			{
+				girdle[i+48] = new Point2D(-girdle[48-i][0], girdle[48-i][1]);
+			}
+		}
+
+		function Btn (name, where, left, top )
+		{
+			this.name = name;
+			this.name = document.createElement('input');
+			this.name.type = 'button';
+			this.name.value = name;
+			this.id = document.body.appendChild(this.name);
+			this.id.style = "position: absolute";
+			this.id.style.background='#0fff0';
+			this.id.style.top = top;
+			this.id.style.left = left;
+			this.id.style.width = "30px";
+			this.id.style.cursor = "pointer";
+		}		
+		
+		function AddButtons()
+		{
+			btn_lw_minus = new Btn("-", "lw_minus", "170px", "100px" );
+			btn_lw_plus = new Btn("+", "lw_plus", "200px", "100px" );
+			btn_lw_minus.name.addEventListener("click", lw_minus);
+			btn_lw_plus.name.addEventListener("click", lw_plus);			
+
+			btn_vp_minus = new Btn("-", "button", "170px", "120px" );
+			btn_vp_plus = new Btn("+", "button", "200px", "120px" );
+			btn_vp_minus.name.addEventListener("click", vp_minus);
+			btn_vp_plus.name.addEventListener("click", vp_plus);				
+		}
+		
+		function pars_value()
+		{
+			ctx.font = "italic 10pt Arial";
+			
+			var text = "Girdle ratio (lw)";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 110);		
+			text = roundNumber(lw, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 110);	
+			
+			var s_vp = String.fromCharCode(948); // δ
+			var text_ang = s_vp + "( " + String.fromCharCode(8736) + " MBF" + " )";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text_ang, 5, 130);	
+			text = roundNumber(Math.degrees(vp), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 130);
+			
+			text = "AB " + String.fromCharCode(8869) + " BF";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 50, 200);	
+
+			text = "BF  " + "- касательная к  окружности circle в точке B";
+//			ctx.fillStyle = "#F00";
+			ctx.fillText(text, 50, 230);
+
+			text = "BM  " + "- касательная к эллипсу ellipse 1 в точке B";
+//			ctx.fillStyle = "#F00";
+			ctx.fillText(text, 50, 260);		
+			
+			var s_fi = String.fromCharCode(966);
+			var s_psi = String.fromCharCode(968);
+			text = s_psi + " = " + s_fi + " + " + s_vp;
+//			ctx.fillStyle = "#F00";
+			ctx.fillText(text, 50, 290);
+			
+			ctx.font = '30px "Times New Roman"';
+			ctx.fillStyle = 'rgba(100, 0, 255, 1)'
+			ctx.fillText('MoonMarquise - girdle (64 vertices)', 50, 50);				
+		}	
+
+		function roundNumber(num, places) 
+		{
+			var t =  Math.round(num * Math.pow(10, places)) / Math.pow(10, places);
+			return t;
+		}
+		
+		function redraw()
+		{
+			ctx.clearRect(0, 0, 1200, 800);
+			init_girdle();
+//			ctx.putImageData(formula, 10, 200);
+			draw_girdle();
+			construction();		
+			pars_value();
+		}
+		
+		// Mouse
+		var mouseDown = false;
+		var lastMouseX = null;
+		var lastMouseY = null;
+		
+		function addHandler(object, event, handler) 
+		{
+			if (object.addEventListener) {
+				object.addEventListener(event, handler, false);
+		}
+		else if (object.attachEvent) 
+		{
+		  object.attachEvent('on' + event, handler);
+		}
+		else alert("Обработчик не поддерживается");
+		}
+		addHandler(window, 'DOMMouseScroll', wheel);
+		addHandler(window, 'mousewheel', wheel);
+		addHandler(document, 'mousewheel', wheel);		
+		
+		
+		function handleMouseDown(event) 
+		{
+			mouseDown = true;
+			lastMouseX = event.clientX;
+			lastMouseY = event.clientY;
+		}
+
+		function handleMouseUp(event) {
+			mouseDown = false;
+		}
+
+		function handleMouseMove(event) 
+		{
+			if (!mouseDown) 
+			{
+				return;
+			}
+			else
+			{
+				var newX = event.clientX;
+				var newY = event.clientY;
+
+				var deltaX = newX - lastMouseX;
+				if (deltaX < 0)
+				{
+					xC = xC - 5;
+				}
+				if (deltaX > 0)
+				{
+					xC = xC + 5;
+				}
+				
+				var deltaY = newY - lastMouseY;
+				if (deltaY < 0)
+				{
+					yC = yC - 5;
+				}
+				if (deltaY > 0)
+				{
+					yC = yC + 5;
+				}
+
+				lastMouseX = newX
+				lastMouseY = newY;
+				redraw();
+			}
+		}
+
+		function wheel(event) 
+		{
+			var delta; // Направление колёсика мыши
+			event = event || window.event;
+			// Opera и IE работают со свойством wheelDelta
+			if (event.wheelDelta) 
+			{ // В Opera и IE
+				delta = event.wheelDelta / 120;
+				// В Опере значение wheelDelta такое же, но с противоположным знаком
+				if (window.opera) 
+					delta = -delta; // Дополнительно для Opera
+			}
+			else if (event.detail) 
+			{ // Для Gecko
+				delta = -event.detail / 3;
+			}
+			// Запрещаем обработку события браузером по умолчанию
+			if (event.preventDefault) 
+				event.preventDefault();
+			event.returnValue = false;
+			//alert(delta); // Выводим направление колёсика мыши
+			SCALE = SCALE + 5 * delta; 
+			redraw();
+		}
+		
+        //canvas.onmousedown = handleMouseDown;
+		document.onmousedown = handleMouseDown;
+        document.onmouseup = handleMouseUp;
+        //canvas.onmousemove = handleMouseMove;
+		document.onmousemove = handleMouseMove;
+		
+		document.addEventListener('keydown', function(event)
+		{
+			var code = event.keyCode;
+			if (code == 37) 
+			{          
+			// left
+				xC = xC - 5; redraw()
+			  //is_moving_left = true;
+			}
+			if (code == 38) 
+			{                                   // up
+				yC = yC - 5; redraw();
+			  //is_moving_forward = true;
+			}
+			if (code == 39) 
+			{                                   // right
+			  xC = xC + 5; redraw()
+			  //is_moving_right = true;
+			}
+			if (code == 40) 
+			{                                   // down
+			  yC = yC + 5; redraw();
+			  //is_moving_back = true;
+			}
+			if (code == 188) 
+			{
+				SCALE = SCALE - 5; redraw();
+			}
+			if (code == 190) 
+			{
+				SCALE = SCALE + 5; redraw();
+			}
+		});
+
+		document.addEventListener('keyup', function(event) 
+		{
+			var code = event.keyCode;
+
+		//	if (code == 37) is_moving_left = false;
+		//	if (code == 38) is_moving_forward = false;
+		//	if (code == 39) is_moving_right = false;
+		//	if (code == 40) is_moving_back = false;
+		});
+			
+		function rs(x, y, s)
+		{
+			ctx.fillRect(x-s/2, y-s/2, s, s);
+		}
+			
+		function rsp(point, s)
+		{
+			ctx.fillRect( fx(point[0]) - s/2, fy(point[1]) - s/2, s, s);
+		}		
+		
+		function txt(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}		
+				
+		function txt2(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}			
+		
+		function arrow() 
+		{
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}		
+		
+		function arr(point, ang, scale) 
+		{
+			ctx.save();
+			ctx.translate(fx(point[0]), fy(point[1]));
+			ctx.scale(scale, scale);
+			ctx.rotate(ang);
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+			ctx.restore();
+		}
+			
+		function drawEllipse(x, y, a, b) 
+		{
+		   // Запоминаем положение системы координат (CК) и масштаб
+		  ctx.save();
+		  ctx.beginPath();
+		 
+		  // Переносим СК в центр будущего эллипса
+		  ctx.translate(fx(x), fy(y));
+		 
+		  /*
+		   * Масштабируем по х.
+		   * Теперь нарисованная окружность вытянется в a / b раз
+		   * и станет эллипсом
+		   */
+		 
+		  ctx.scale(a / b, 1);
+		 
+		  // Рисуем окружность, которая благодаря масштабированию станет эллипсом
+		  ctx.arc(0, 0, b*SCALE, 0, Math.PI * 2, true);
+		 
+		  // Восстанавливаем СК и масштаб
+		  ctx.restore();
+		  ctx.closePath();
+		  ctx.stroke();
+		  
+		}			
+
+		function line(pt1, pt2, x)
+		{
+			var k = (pt2[1] - pt1[1])/(pt2[0] - pt1[0]);
+			if (x > 0)
+			{
+				var pt = [pt1[0] + x, pt1[1] + k*x];
+				return pt;
+			}
+			else
+			{
+				var pt = [pt1[0] + x, pt1[1] + k*x];
+				return pt;				
+			}
+		}
+			
+		addEventListener("load", initiate);
+		
+	</script>
+</head>
+
+<body>
+</body>
+</html>

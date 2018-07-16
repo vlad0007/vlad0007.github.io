@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>CushionGirdle</title>
+	<script src="../libs/WebGeometry.js"></script>
+	<script src="../libs/buttons.js"></script>
+
+	<script>
+		var girdle = [64];
+		var DEGREE = 0.01745329251994
+		var lw = 1.15;
+		var RR1, RR2;
+		var rounnd_cir1 = 0.15;//0.1140;
+		var rounnd_cir2 = 0.110;
+		var R3 = 0.174;// 0.034;
+		var ang_2 = 60*DEGREE;  //0.663;
+		var ang_3 = 60*DEGREE; //0.663;
+		var ang_corner = 45*DEGREE; //0.785; //45*DEGREE  ALT+0176
+		var ctx;
+		var button_lw_plus, button_lw_minus; 
+		var btn_return;
+		
+		var OO1, OO2, OO3, OO4;
+		var O3I;
+		var uu;
+		var G, F;
+		
+		var gd_x = [64];
+		var gd_y = [64];		
+			
+		var canvas;
+		// Canvas coordinates
+		var xC = 700; // Centre x
+		var yC = 250; // Centre y
+		var SCALE = 400;  // SCALE
+		
+		var formula;
+		
+		var btn_lw_minus, btn_lw_plus;
+		var btn_r1_minus, btn_r1_plus, btn_r2_minus,btn_r2_plus, btn_r3_minus, btn_r3_plus;
+		var btn_ang_corner_minus, btn_ang_corner_plus;
+		var btn_ang_2_minus, btn_ang_2_plus;
+		var btn_ang_3_minus, btn_ang_3_plus;
+		var Back_image;
+			
+		function lw_minus() { lw = lw - 0.05; redraw();}
+		function lw_plus() { lw = lw + 0.05; redraw();}
+		
+		function r1_minus() { rounnd_cir1 = rounnd_cir1 - 0.01; redraw();}
+		function r1_plus() { rounnd_cir1 = rounnd_cir1 + 0.01; redraw();}
+
+		
+		function r2_minus() { rounnd_cir2 = rounnd_cir2 - 0.01; redraw();}
+		function r2_plus() { rounnd_cir2 = rounnd_cir2 + 0.01; redraw();}
+
+		function r3_minus() { R3 = R3 - 0.01; redraw();}
+		function r3_plus() { R3 = R3 + 0.01; redraw();}
+		
+		function ang_corner_minus() { ang_corner = ang_corner - 1.0*DEGREE; redraw();}
+		function ang_corner_plus() { ang_corner = ang_corner + 1.0*DEGREE; redraw();}
+		
+		function ang_2_minus() { ang_2 = ang_2 - 1.0*DEGREE; redraw();}
+		function ang_2_plus() { ang_2 = ang_2 + 1.0*DEGREE; redraw();}
+		
+		function ang_3_minus() { ang_3 = ang_3 - 1.0*DEGREE; redraw();}
+		function ang_3_plus() { ang_3 = ang_3 + 1.0*DEGREE; redraw();}
+		
+		function fx(val)
+		{
+			var res = val * SCALE + xC;
+			return res;
+		}
+		
+		function fy(val)
+		{
+			var res = - val * SCALE + yC;
+			return res;
+		}		
+			
+		function initiate(lw)
+		{
+			canvas = document.createElement('canvas');
+			canvas.width = 1200;
+			canvas.height = 600;
+			canvas.style.position = "absolute";
+			canvas.style.border = "1px solid";
+			var body = document.getElementsByTagName("body")[0];
+			body.appendChild(canvas);
+			ctx = canvas.getContext("2d");
+
+			var img = document.createElement('img');
+			img.setAttribute('src', "../Images/Formula.png");
+			img.addEventListener("load", function()
+											{
+												ctx.drawImage(img, 10, 400, 200, 80);
+												formula = ctx.getImageData(10, 400, 200, 80);
+											});			
+			init_girdle();
+			draw_girdle();
+			construction();
+			pars_value();
+			AddButtons();
+			AddButtonsPositionSize();
+			
+			btn_return = new Btn("Return to main view Maltese Cross", "button", "30px", "500px" );
+			btn_return.id.style.width = "270px";
+			btn_return.id.style.height = "50px";
+			btn_return.id.style.background= '#99ddff';
+			btn_return.id.style.borderRadius = "10px";
+			btn_return.id.style.cursor = "pointer";
+			btn_return.id.style.fontSize = "14px";
+			btn_return.id.style.fontWeight = "bold";
+			btn_return.id.style.color = '#000000';;
+			btn_return.id.style.borderWidth = "2px";
+			btn_return.id.style.borderColor = "red";
+			btn_return.name.addEventListener("click", function (){document.location.href = 'Maltese.html';});				
+		}
+
+		function draw_girdle()
+		{
+			var i;
+			for(i = 0; i < 64; i++)
+			{
+				gd_x[i] = fx(girdle[i][0]);
+				gd_y[i] = fy(girdle[i][1]);
+			}				
+			
+			// Draw girdle
+			ctx.beginPath();
+			ctx.moveTo(gd_x[0], gd_y[0]);
+			for (i = 0; i < 64; i++)
+			{
+				ctx.lineTo(gd_x[i], gd_y[i]);
+			}
+			ctx.closePath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#00f';
+			ctx.fillStyle = '#fdf';
+			ctx.fill();
+			ctx.stroke();					
+			
+			// Text and vertexes
+			ctx.fillStyle = '#00f';
+			ctx.strokeStyle = "#F00";
+			ctx.font = "italic 10pt Arial";
+			
+			for (i = 0; i < 64; i = i + 1)
+			{
+				if ( (i == 0) ||  (i == 4)  ||  (i == 8) || (i == 12) || (i == 16) || (i == 20) ||
+					 (i == 24) || (i == 28) || (i == 32) || (i == 36) || (i == 40) ||
+					 (i == 44) || (i == 48) || (i == 52) || (i == 56) || (i == 60) )
+				{
+					rsp(girdle[i], 5);
+				}
+				else
+				{
+					rsp(girdle[i], 4);
+				}
+			}		
+			
+			txt("0", girdle[0], "rt", "up");
+			txt("4", girdle[4], "md", "up");
+			txt("8", girdle[8], "md", "up");
+			txt("12", girdle[12], "rt", "up");
+			txt("16", girdle[16], "rt", "up");
+			txt("20", girdle[20], "rt", "md");
+			txt2("24", girdle[24], "lt", "md");
+			txt("28", girdle[28], "md", "dn");
+			txt("32", girdle[32], "md", "dn");
+			
+			txt("36", girdle[36], "md", "dn");
+			txt("40", girdle[40], "lt", "dn");
+			txt("44", girdle[44], "lt", "md");
+			txt("48", girdle[48], "rt", "up");
+			txt("52", girdle[52], "lt", "md");
+			txt("56", girdle[56], "rt", "dn");
+			txt("60", girdle[60], "md", "up");	
+		}
+			
+		function construction()	
+		{
+			// Circle 1
+			ctx.beginPath();
+			ctx.arc(fx(OO1[0]), fy(OO1[1]), RR1*SCALE, 0.0, 2.0*Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();	
+			ctx.fillStyle = '#F00';
+			rsp(OO1, 4);
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(OO1[0] + 0.001), fy(OO1[1]));
+			ctx.lineTo(gd_x[62], gd_y[62]);
+			ctx.stroke();
+			var pnt00 = new Point2D(0, 0);
+			var pnt01 = new Point2D(0, 1);
+			var ln01 = new Line2D(pnt00, pnt01); // vert. line
+			var lnR1 = new Line2D(OO1, girdle[62]);
+			var ang = - (ln01.Angle(lnR1));
+			arr(girdle[62], ang, 0.2)
+			txt2("O1", OO1, "md", "dn");
+			txt2("R1", girdle[62], "rt", "dn");
+			
+			// Circle 2
+			ctx.beginPath();
+			ctx.arc(fx(OO2[0]), fy(OO2[1]), RR2*SCALE, 0.0, 2.0 * Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();		  
+			rsp(OO2, 4);
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));
+			ctx.lineTo(gd_x[19], gd_y[19]);
+			ctx.stroke();
+			var lnR1 = new Line2D(OO2, girdle[19]);
+			ang = - (ln01.Angle(lnR1));
+			arr(girdle[19], ang, 0.2)
+			txt2("R2", girdle[19], "lt", "up");
+			txt("O2", OO2, "lt", "up");
+			
+			// Circle 3
+			ctx.beginPath();
+			ctx.arc(fx(OO3[0]), fy(OO3[1]), R3*SCALE, 0, 2 * Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();	
+			ctx.beginPath();
+			ctx.arc(fx(OO3[0]), fy(-OO3[1]), R3*SCALE, 0, 2*Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();			
+			var x, y;
+			var point1 = new Point2D;
+			var point2 = new Point2D;
+			var circle3 = new Circle2D(OO3, R3);
+			var line3 = new Line2D();
+			var vector3 = new Vector2D(Math.sin(85*DEGREE), Math.cos(85*DEGREE));
+			line3.CreateLineVectorPoint(vector3, OO3);
+			if(!circle3.IntersectionLineCircle(line3, point1, point2))
+				return null;
+			if (point1[1] > point2[1])
+			{
+				y = point2[1];
+				x = point2[0];
+			}
+			else
+			{
+				y = point1[1];
+				x = point1[0];
+			}			
+			var p_temp = [x, y]; // point of crossing line and circle 3
+			
+			rsp(OO3, 4);
+			txt("O3", OO3, "lt", "dn");
+			txt("R3", p_temp, "lt", "md");
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			ctx.lineTo(fx(x), fy(y));
+			ctx.stroke();
+			arr(p_temp, 85*DEGREE - 180*DEGREE, 0.2);
+			
+			// "circle 1", "circle 2", "circle 3" /////////////////////////
+			ctx.fillStyle = '#000';
+			ctx.fillText("circle 1", fx(girdle[50][0] * 1.5), fy(girdle[50][1] * 1.5));
+			ctx.fillText("circle 2", fx(girdle[26][0] * 1.09), fy(girdle[26][1] * 1.09));
+			ctx.fillText( "circle 3", fx(OO3[0] - R3), fy(OO3[1] - R3/2) );
+			ctx.fillStyle = '#f00';
+			///////////////////////////////////////////////////////////////			
+			
+			// Circle 1-3
+			ctx.beginPath();
+			ctx.arc(fx(OO1[0]), fy(OO1[1]), (RR1 - R3)*SCALE, 0.0, 2.0 * Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();	
+			var line_O1_g55 = new Line2D(OO1, girdle[55]);
+			var cir_1_2 = new Circle2D(OO1, RR1 - R3);
+			var p1 = new Point2D();
+			var p2 = new Point2D();
+			var cr = new Point2D();
+			if(!cir_1_2.IntersectionLineCircle(line_O1_g55, p1, p2))
+			{
+				return null;
+			}
+			if  (p1[1] > p2[1])
+			{
+				cr[0] = p1[0]; cr[1] = p1[1];
+			}
+			else
+			{
+				cr[0] = p2[0]; cr[1] = p2[1];			
+			}
+			
+			ctx.moveTo(fx(OO1[0]), fy(OO1[1]));
+			ctx.lineTo( fx(cr[0]), fy(cr[1]));
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();	
+			ang = - (ln01.Angle(line_O1_g55));
+			arr(cr, ang, 0.2)
+			txt2("R1-R3", cr, "md", "up");
+			
+			// Circle 2-3
+			ctx.beginPath();
+			ctx.arc(fx(OO2[0]), fy(OO2[1]), (RR2 - R3)*SCALE, 0.0, 2.0 * Math.PI, false);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000000';
+			ctx.stroke();	
+			var line_O2_g46 = new Line2D(OO2, girdle[46]);
+			var cir_2_3 = new Circle2D(OO2, RR2 - R3);
+			if(!cir_2_3.IntersectionLineCircle(line_O2_g46, p1, p2))
+			{
+				return null;
+			}
+			if  (p1[1] < p2[1])
+			{
+				cr[0] = p1[0]; cr[1] = p1[1];
+			}
+			else
+			{
+				cr[0] = p2[0]; cr[1] = p2[1];			
+			}
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));
+			ctx.lineTo( fx(cr[0]), fy(cr[1]));
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000000';	
+			ctx.stroke();	
+			ang = - (ln01.Angle(line_O2_g46));
+			arr(cr, ang, 0.2);
+			txt("R2-R3", cr, "rt", "dn");
+
+			// angle 1
+			// angle 1 - ray 1
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			ctx.lineTo(gd_x[8] + 8*(gd_x[8] - fx(OO3[0]) ), gd_y[8] + 8*( gd_y[8] - fy(OO3[1]) ) );
+				
+			// ang_corner - ray 2
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			ctx.lineTo(fx(OO3[0]) + 60, fy(OO3[1]));
+			ctx.stroke();			
+			
+			// ang_corner - arc
+			ctx.beginPath();
+			ctx.arc(fx(OO3[0]), fy(OO3[1]), 40, -ang_corner, 0);
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+			// ang_corner - text
+			ctx.fillText("1", fx(OO3[0]) + 40, fy(OO3[1]) - 9);
+			
+			// angle 2
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			// ang_corner - ray 2
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			ctx.lineTo(gd_x[4] + 8*(gd_x[4] - fx(OO3[0]) ), gd_y[4] + 8*( gd_y[4] - fy(OO3[1]) ) );	
+						
+			ctx.stroke();			
+			// ang_corner - arc
+			ctx.beginPath();
+			ctx.arc(fx(OO3[0]), fy(OO3[1]), 120, -ang_corner - ang_2, -ang_corner, 0);
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+			// ang_corner - text
+			ctx.fillText("2", fx(OO3[0]) + 50, fy(OO3[1]) - 115);			
+			
+			// angle 3
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			// ang_corner - ray 2
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			ctx.lineTo(gd_x[12] + 6*(gd_x[12] - fx(OO3[0]) ), gd_y[12] + 6*( gd_y[12] - fy(OO3[1]) ) );
+			ctx.stroke();			
+			// ang_corner - arc
+			ctx.beginPath();
+			ctx.arc(fx(OO3[0]), fy(OO3[1]), 140, -ang_corner, -ang_corner + ang_3, 0);
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+			// ang_corner - text
+			ctx.fillText("3", fx(OO3[0]) + 120, fy(OO3[1]) - 80);		
+			
+			// line from O3 to girdle[4]
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			 ctx.lineTo(gd_x[4] + (gd_x[4] - fx(OO3[0]) ), 
+				gd_y[4] + ( gd_y[4] - fy(OO3[1]) ) );			
+			// line from O3 to girdle[12]
+			ctx.moveTo(fx(OO3[0]), fy(OO3[1]));
+			 ctx.lineTo(gd_x[12] + (gd_x[12] - fx(OO3[0]) ), 
+				gd_y[12] + ( gd_y[12] - fy(OO3[1]) ) );
+			
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			
+			// O1
+			ctx.moveTo(fx(OO1[0]), fy(OO1[1]));			
+			ctx.lineTo(gd_x[4]+ 1*(gd_x[4] - fx(OO1[0]) ), 
+				gd_y[4] + 1*( gd_y[4] - fy(OO1[1]) ) );		
+				
+			ctx.moveTo(fx(OO1[0]), fy(OO1[1]));			
+			ctx.lineTo(gd_x[5]+ 1*(gd_x[5] - fx(OO1[0]) ), 
+				gd_y[5] + 1*( gd_y[5] - fy(OO1[1]) ) );
+			
+			ctx.moveTo(fx(OO1[0]), fy(OO1[1]));			
+			ctx.lineTo(gd_x[6]+ 1*(gd_x[6] - fx(OO1[0]) ), 
+				gd_y[6] + 1*( gd_y[6] - fy(OO1[1]) ) );
+			
+			ctx.moveTo(fx(OO1[0]), fy(OO1[1]));			
+			ctx.lineTo(gd_x[7]+ 1*(gd_x[7] - fx(OO1[0]) ), 
+				gd_y[7] + 1*( gd_y[7] - fy(OO1[1]) ) );		
+			
+			// O2			
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));			
+			ctx.lineTo(gd_x[21]+ 0.1*(gd_x[21] - fx(OO2[0]) ), 
+				gd_y[21] + 0.1*( gd_y[21] - fy(OO2[1]) ) );		
+				
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));			
+			ctx.lineTo(gd_x[22]+ 0.1*(gd_x[22] - fx(OO2[0]) ), 
+				gd_y[22] + 0.1*( gd_y[22] - fy(OO2[1]) ) );
+			
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));			
+			ctx.lineTo(gd_x[23]+ 0.1*(gd_x[23] - fx(OO2[0]) ), 
+				gd_y[23] + 0.1*( gd_y[23] - fy(OO2[1]) ) );
+			
+			ctx.moveTo(fx(OO2[0]), fy(OO2[1]));			
+			ctx.lineTo(gd_x[24]+ 0.1*(gd_x[24] - fx(OO2[0]) ), 
+				gd_y[24] + 0.1*( gd_y[24] - fy(OO2[1]) ) );		
+				
+			// G, F - points of junction between circles
+			ctx.fillStyle = '#f0e';
+			rsp(F, 4);
+			rsp(G, 4);
+			txt("f", F, "rt", "up");
+			txt2("g", G, "rt", "md");
+			
+			ctx.fillText("f, g", 10, 300 );
+			ctx.fillStyle = "#00F";
+			ctx.fillText("- the points of junction between", 30, 300);
+			ctx.fillText("circle 1 - circle 3 and circle 2 - circle 3.", 15, 320);
+			
+			// Axis x, y
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(-0.7), fy(0));
+			ctx.lineTo(fx(0.7), fy(0));
+			ctx.moveTo(fx(0), fy(-0.7));
+			ctx.lineTo(fx(0), fy(0.7));
+			ctx.stroke();
+		}
+		
+		function init_girdle()
+		{
+			var i;
+			var point1 = new Point2D(); 
+			var point2 = new Point2D();
+			
+			var DEGREE = 0.01745329251994;
+
+			// Радиус большей окружности
+			var R1 = rounnd_cir1/2.0 + (lw * lw)/(8.0*rounnd_cir1);
+			RR1 = R1;
+
+			// Радиус меньшей окружности
+			var R2 = rounnd_cir2/2.0 + 1/(8.0*rounnd_cir2);
+			RR2 = R2;
+
+			// Центр меньшей окружности - лежит на оси OX
+			var O2 = new Point2D(lw/2 - R2, 0);
+			OO2 = O2;
+
+			// Центр большей окружности - лежит на оси OY
+			var O1 = new Point2D(0, 0.5 - R1);
+			OO1 = O1;
+
+			var O3 = new Point2D(); // Центр сопрягающей окружности
+			OO3 = O3;
+			var g = new Point2D(); // Точки пересечения окружностей cir1
+			var f = new Point2D(); // и cir2 с сопрягающей окружностью cir3
+
+			// Меньшая окружность
+			var cir2 =    new Circle2D(O2, R2);
+			// Большая окружность
+			var cir1 = new Circle2D(O1, R1);
+
+			//  Окружности, используемые для вычисления центра 
+			// сопрягающей окружности
+			//var R3 = R3;
+			var R2_R3 = new Circle2D(O2, R2 - R3); 
+			var R1_R3 = new Circle2D(O1, R1 - R3); 
+
+			if(!R2_R3.IntersectionTwoCircles(R1_R3, point1, point2))
+			{
+				return null;
+			}
+
+			// Центр сопрягающей окружности
+			// O3 = (point1[0] > point2[0]) ? point1 : point2;
+			if (point1[0] > point2[0])
+			{
+				O3[0] = point1[0]; O3[1] = point1[1]
+			}
+			else
+			{
+				O3[0] = point2[0]; O3[1] = point2[1]			
+			}
+
+	        // Создаем сопрягающую окружность чуть большего 
+			// радиуса чем R3 (для проверки)
+			var cir3 = new Circle2D(O3, R3 + 0.00001); // R3+ EPSILON);
+
+			// Проверяем пересекаются или нет окружности 
+			// cir2 и cir1 с сопрягающей окружностью cir3
+			// Координаты точек пересечения g и point2
+			// и также f и point2 должны отличаться совершенно незначительно
+			if(!cir2.IntersectionTwoCircles(cir3, g, point2))
+			{
+				return null;
+			}
+			if(!cir1.IntersectionTwoCircles(cir3, f, point2)) 
+			{
+				return null;
+			}
+
+			G = g;
+			F = f;
+			
+			// Находим положение точки на луче, 
+			//который будет определять направление на котором  
+			//лежит угловая вершина рундиста girdle[8]. 
+			// Этот луч будет использоваться в качестве 
+			//начальной прямой отсчета для углов ang_2 и ang_3.
+			//var ang_corner = ang_corner;      !!!!!!!!!
+
+			var u = new Point2D();
+			u[0] = O3[0] + Math.cos(ang_corner) * R3;
+			u[1] = O3[1] + Math.sin(ang_corner) * R3;
+			
+			//Point2D O4(data.gd_segments * data.lw, data.gd_segments);
+			uu = u;
+
+			var t = new Point2D();	// Точки на радиусах сопрягающей окружности cir3
+			var w = new Point2D();	// На рисунке они лежат на сопрягающей окружности
+			t[0] = O3[0] + Math.cos(ang_corner + ang_2);
+			t[1] = O3[1] + Math.sin(ang_corner + ang_2);
+
+			w[0] = O3[0] + Math.cos(ang_corner - ang_3);
+			w[1] = O3[1] + Math.sin(ang_corner - ang_3);
+
+			// Прямые используемые для нахождения границ сегментов рундиста.
+			//Line2D ln_O4_t, ln_O4_u, ln_O4_w;
+			var ln_O4_t = new Line2D(O3, t);
+			var ln_O4_u = new Line2D(O3, u);
+			var ln_O4_w = new Line2D(O3, w);
+
+			//  Конструируем верхнюю часть рундиста
+			var s = new Point2D(); // s, v - Точки лежащие на границе сегментов seg1 и seg2
+			var v = new Point2D(); // и также на границе сегментов seg3 и seg4
+			girdle[0] = new Point2D(0, 0.5);
+
+			if(!cir1.IntersectionLineCircle(ln_O4_t, point1, point2))
+			{
+				return null;
+			}
+			
+			if (point1[1] > point2[1])
+			{
+				s[0] = point1[0]; s[1] = point1[1]
+			}
+			else
+			{
+				s[0] = point2[0]; s[1] = point2[1]			
+			}
+			girdle[4] = s;
+			girdle[8] = u;
+
+			if(!cir2.IntersectionLineCircle(ln_O4_w, point1, point2))
+			{
+				return null;
+			}
+			
+			//v = (point1[0] > point2[0]) ? point1 : point2;
+			if (point1[0] > point2[0])
+			{
+				v[0] = point1[0]; v[1] = point1[1]
+			}
+			else
+			{
+				v[0] = point2[0]; v[1] = point2[1]			
+			}
+			
+			girdle[12] = v;
+			girdle[16]= new Point2D(lw/2, 0);
+
+			// Остальной рундист
+			var x, y;
+			var Fi2 = Math.atan2((u[0] - O1[0]), (u[1] - O1[1]));
+			var Fi1 = Math.atan2((s[0] - O1[0]), (s[1] - O1[1]));
+			var ang = Fi2;
+			var dAng = (Fi2 - Fi1)/4; // Угловой шаг
+
+			// seg2
+			for(i = 7; i > 4; i--)
+			{
+				ang = ang - dAng;
+				x = Math.sin(ang)*R1 + O1[0];
+				if(x > f[0]) // Правее точки пересечения окружностей cir1 и cir3
+				{
+					// Пересечение с сопрягающей окружностью cir3
+					var line2 = new Line2D();
+					var vector2 = new Vector2D(Math.sin(ang), Math.cos(ang));
+					line2.CreateLineVectorPoint(vector2, O1);
+					if(!cir3.IntersectionLineCircle(line2, point1, point2))
+						return null;
+					if (point1[1] > point2[1])
+					{
+						y = point1[1];
+						x = point1[0];
+					}
+					else
+					{
+						y = point2[1];
+						x = point2[0];
+					}
+
+				}
+				else
+				{
+					y = Math.cos(ang)*R1 + O1[1];
+				}
+				girdle[i] = new Point2D(x, y);
+			}
+
+			ang = Fi1;
+			dAng = Fi1 / 4;
+			// seg1
+			for(i = 3; i > 0; i--)
+			{
+				ang = ang - dAng;
+				x = Math.sin(ang)*R1 + O1[0];
+				if(x > f[0]) // Правее точки пересечения окружностей cir1 и cir3
+				{
+					// Пересечение с сопрягающей окружностью cir3
+					var line1 = new Line2D();
+					var vector1 = new Vector2D(Math.sin(ang), Math.cos(ang));
+					line1.CreateLineVectorPoint(vector1, O1);
+					if(!cir3.IntersectionLineCircle(line1, point1, point2))
+					{
+						return null;
+					}
+					if (point1[1] > point2[1])
+					{
+						y = point1[1];
+						x = point1[0];
+					}
+					else
+					{
+						y = point2[1];
+						x = point2[0];
+					}
+
+				}
+				else
+				{
+					y = Math.cos(ang)*R1 + O1[1];
+				}
+				girdle[i] = new Point2D(x, y);
+			}
+
+			var Fi3 = Math.atan2((u[1] - O2[1]), (u[0] - O2[0]));
+			var Fi4 = Math.atan2((v[1] - O2[1]) ,(v[0] - O2[0]));
+			ang = Fi3;
+			dAng = (Fi3 - Fi4)/4;
+
+			// seg3
+			for(i = 9; i < 12; i++)
+			{
+				ang = ang - dAng;
+				y = Math.sin(ang)*R2 + O2[1];
+				if(y > g[1]) // Выше точки пересечения окружностей cir2 и cir3
+				{
+					// Пересечение с сопрягающей окружностью cir3
+					var line3 = new Line2D();
+					var vector3 = new Vector2D(Math.cos(ang), Math.sin(ang));
+					line3.CreateLineVectorPoint(vector3, O2);
+					if(!cir3.IntersectionLineCircle(line3, point1, point2))
+					{
+						return null;
+					}
+					if (point1[0] > point2[0])
+					{
+						x = point1[0];
+						y = point1[1];
+					}
+					else
+					{
+						x = point2[0];
+						y = point2[1];
+					}
+				}
+				else
+				{
+					x = Math.cos(ang)*R2 + O2[0];
+				}					
+				girdle[i] = new Point2D(x, y);
+			}
+
+			ang = Fi4;
+			dAng = Fi4 / 4;
+
+			// seg4
+			for(i = 13; i < 16; i++)
+			{
+				ang = ang - dAng;
+				y = Math.sin(ang)*R2 + O2[1];
+				if (y > g[1]) // Выше точки пересечения окружностей cir2 и cir3
+				{
+					// Пересечение с сопрягающей окружностью cir3
+					var line4 = new Line2D();
+					var vector4 = new Vector2D(Math.cos(ang), Math.sin(ang));
+					line4.CreateLineVectorPoint(vector4, O2);
+					if(!cir3.IntersectionLineCircle(line4, point1, point2))
+					{
+						return null;
+					}
+					if (point1[0] > point2[0])
+					{
+						x = point1[0];
+						y = point1[1];
+					}
+					else
+					{
+						x = point2[0];
+						y = point2[1];
+					}
+				}
+				else
+				{
+					x = Math.cos(ang)*R2 + O2[0];
+				}
+				girdle[i] = new Point2D(x, y);
+			}
+
+			// Производим вычисления вершин рундиста для остальных квадрантов
+			for(i = 0; i < 16; i++)
+			{
+				girdle[32-i] = new Point2D();
+				girdle[32-i][0] = girdle[i][0];
+				girdle[32-i][1] = -girdle[i][1];
+			}
+			for(i = 1; i < 32; i++)
+			{
+				girdle[64-i] = new Point2D();
+				girdle[64-i][0] = -girdle[i][0];
+				girdle[64-i][1] = girdle[i][1];
+			}
+		}
+
+		function Btn (name, where, left, top )
+		{
+			this.name = name;
+			this.name = document.createElement('input');
+			this.name.type = 'button';
+			this.name.value = name;
+			this.id = document.body.appendChild(this.name);
+			this.id.style = "position: absolute";
+			this.id.style.background='#0fff0';
+			this.id.style.top = top;
+			this.id.style.left = left;
+			this.id.style.width = "30px";
+			this.id.style.cursor = "pointer";
+		}		
+		
+		function AddButtons()
+		{
+			btn_lw_minus = new Btn("-", "lw_minus", "150px", "100px" );
+			btn_lw_plus = new Btn("+", "lw_plus", "180px", "100px" );			
+			
+			btn_r1_minus = new Btn("-", "r1_minus", "150px", "120px" );
+			btn_r1_plus = new Btn("+", "r1_plus", "180px", "120px" );
+			
+			btn_r2_minus = new Btn("-", "r2_minus", "150px", "140px" );
+			btn_r2_plus = new Btn("+", "r2_plus", "180px", "140px" );
+			
+			btn_r3_minus = new Btn("-", "r3_minus", "150px", "160px" );
+			btn_r3_plus = new Btn("+", "r3_plus", "180px", "160px" );
+			
+			btn_ang_corner_minus = new Btn("-", "ang_corner_minus", "150px", "180px" );
+			btn_ang_corner_plus = new Btn("+", "ang_corner_plus", "180px", "180px" );
+			
+			btn_ang_2_minus = new Btn("-", "ang_2_minus", "150px", "200px" );
+			btn_ang_2_plus = new Btn("+", "ang_2_plus", "180px", "200px" );
+			
+			btn_ang_3_minus = new Btn("-", "ang_3_minus", "150px", "220px" );
+			btn_ang_3_plus = new Btn("+", "ang_3_plus", "180px", "220px" );
+			
+			btn_lw_minus.name.addEventListener("click", lw_minus);
+			btn_lw_plus.name.addEventListener("click", lw_plus);
+			
+			btn_r1_minus.name.addEventListener("click", r1_minus);
+			btn_r1_plus.name.addEventListener("click", r1_plus);
+			
+			btn_r2_minus.name.addEventListener("click", r2_minus);
+			btn_r2_plus.name.addEventListener("click", r2_plus);
+			
+			btn_r3_minus.name.addEventListener("click", r3_minus);
+			btn_r3_plus.name.addEventListener("click", r3_plus);
+			
+			btn_ang_corner_minus.name.addEventListener("click", ang_corner_minus);
+			btn_ang_corner_plus.name.addEventListener("click", ang_corner_plus);
+			
+			btn_ang_2_minus.name.addEventListener("click", ang_2_minus);
+			btn_ang_2_plus.name.addEventListener("click", ang_2_plus);
+			
+			btn_ang_3_minus.name.addEventListener("click", ang_3_minus);
+			btn_ang_3_plus.name.addEventListener("click", ang_3_plus);			
+		}
+		
+		function pars_value()
+		{
+			// Text before buttons
+			ctx.font = "italic 10pt Arial";
+			
+			var text = "Girdle ratio (lw)";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 110);		
+			text = roundNumber(lw, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 110);	
+			
+			text = "Roundness 1 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 130);	
+			ctx.fillStyle = '#ff0000';
+			text = roundNumber(rounnd_cir1, 2);
+			ctx.fillText(text, 100, 130);			
+			
+			text = "Roundness 2 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 150);
+			text =roundNumber(rounnd_cir2, 3);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 150);	
+			
+			text = "R3 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 170);	
+			text = roundNumber(R3, 3);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 170);	
+			
+			text = "Angle corner ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 190);
+			text = roundNumber(Math.degrees(ang_corner), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 190);	
+			
+			text = "Angle 2 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 210);
+			text = roundNumber(Math.degrees(ang_2), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 210);
+			
+			text = "Angle 3 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 230);
+			text = roundNumber(Math.degrees(ang_3), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 100, 230);
+			
+			ctx.font = '20px "Times New Roman"';
+			ctx.fillStyle = 'rgba(100, 0, 255, 1)'
+			ctx.fillText('Cushion Maltese Cross - girdle (64 vertices)', 10, 20);						
+		}	
+
+		function roundNumber(num, places) 
+		{
+			var t =  Math.round(num * Math.pow(10, places)) / Math.pow(10, places);
+			return t;
+		}
+		
+		function redraw()
+		{
+			ctx.clearRect(0, 0, 1200, 800);
+			init_girdle();
+			ctx.putImageData(formula, 10, 400);
+			draw_girdle();
+			construction();		
+			pars_value();		
+			//requestAnimationFrame(redraw);
+		}
+		
+		// Mouse
+		var mouseDown = false;
+		var lastMouseX = null;
+		var lastMouseY = null;
+		
+		function addHandler(object, event, handler) 
+		{
+			if (object.addEventListener) {
+				object.addEventListener(event, handler, false);
+		}
+		else if (object.attachEvent) 
+		{
+		  object.attachEvent('on' + event, handler);
+		}
+		else alert("Обработчик не поддерживается");
+		}
+		addHandler(window, 'DOMMouseScroll', wheel);
+		addHandler(window, 'mousewheel', wheel);
+		addHandler(document, 'mousewheel', wheel);		
+		
+		
+		function handleMouseDown(event) 
+		{
+			mouseDown = true;
+			lastMouseX = event.clientX;
+			lastMouseY = event.clientY;
+			document.body.style.cursor = "move";
+		}
+
+		function handleMouseUp(event) 
+		{
+			document.body.style.cursor = "default";
+			mouseDown = false;
+		}
+
+		function handleMouseMove(event) 
+		{
+			if (!mouseDown) 
+			{
+				return;
+			}
+			else
+			{
+				var newX = event.clientX;
+				var newY = event.clientY;
+
+				var deltaX = newX - lastMouseX;
+				if (deltaX < 0) // left
+				{
+					xC = xC - 5;
+				}
+				if (deltaX > 0) // left
+				{
+					xC = xC + 5;
+				}
+				
+				var deltaY = newY - lastMouseY;
+				if (deltaY < 0) // left
+				{
+					yC = yC - 5;
+				}
+				if (deltaY > 0) // left
+				{
+					yC = yC + 5;
+				}
+
+				lastMouseX = newX
+				lastMouseY = newY;
+				redraw();
+			}
+		}
+
+		function wheel(event) 
+		{
+			var delta; // Направление колёсика мыши
+			event = event || window.event;
+			// Opera и IE работают со свойством wheelDelta
+			if (event.wheelDelta) 
+			{ // В Opera и IE
+				delta = event.wheelDelta / 120;
+				// В Опере значение wheelDelta такое же, но с противоположным знаком
+				if (window.opera) 
+					delta = -delta; // Дополнительно для Opera
+			}
+			else if (event.detail) 
+			{ // Для Gecko
+				delta = -event.detail / 3;
+			}
+			// Запрещаем обработку события браузером по умолчанию
+			if (event.preventDefault) 
+				event.preventDefault();
+			event.returnValue = false;
+			//alert(delta); // Выводим направление колёсика мыши
+			SCALE = SCALE + 5 * delta; 
+			redraw();
+		}
+		
+        //canvas.onmousedown = handleMouseDown;
+		document.onmousedown = handleMouseDown;
+        document.onmouseup = handleMouseUp;
+        //canvas.onmousemove = handleMouseMove;
+		document.onmousemove = handleMouseMove;
+		
+		document.addEventListener('keydown', function(event)
+		{
+			var code = event.keyCode;
+			if (code == 37) 
+			{          
+			// left
+				xC = xC - 5; redraw()
+			  //is_moving_left = true;
+			}
+			if (code == 38) 
+			{                                   // up
+				yC = yC - 5; redraw();
+			  //is_moving_forward = true;
+			}
+			if (code == 39) 
+			{                                   // right
+			  xC = xC + 5; redraw()
+			  //is_moving_right = true;
+			}
+			if (code == 40) 
+			{                                   // down
+			  yC = yC + 5; redraw();
+			  //is_moving_back = true;
+			}
+			if (code == 188) 
+			{
+				SCALE = SCALE - 5; redraw();
+			}
+			if (code == 190) 
+			{
+				SCALE = SCALE + 5; redraw();
+			}
+		});
+
+		document.addEventListener('keyup', function(event) 
+		{
+			var code = event.keyCode;
+
+		//	if (code == 37) is_moving_left = false;
+		//	if (code == 38) is_moving_forward = false;
+		//	if (code == 39) is_moving_right = false;
+		//	if (code == 40) is_moving_back = false;
+		});
+			
+		function rs(x, y, s)
+		{
+			ctx.fillRect(x-s/2, y-s/2, s, s);
+		}
+			
+		function rsp(point, s)
+		{
+			ctx.fillRect( fx(point[0]) - s/2, fy(point[1]) - s/2, s, s);
+		}		
+		
+		function txt(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}		
+				
+		function txt2(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}			
+		
+		function arrow() 
+		{
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}		
+		
+		function arr(point, ang, scale) 
+		{
+			ctx.save();
+			ctx.translate(fx(point[0]), fy(point[1]));
+			ctx.scale(scale, scale);
+			ctx.rotate(ang);
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+			ctx.restore();
+		}
+			
+		addEventListener("load", initiate);
+		
+	</script>
+</head>
+
+<body>
+</body>
+</html>

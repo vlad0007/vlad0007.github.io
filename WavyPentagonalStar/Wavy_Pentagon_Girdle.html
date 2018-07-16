@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>PentagonalStar - girdle</title>
+	<script src="../libs/WebGeometry.js"></script>
+	<script src="../libs/buttons.js"></script>
+	
+	<script>
+	//  В данной огранке введен параметр "Number of petals", 
+	// который задает количество выпуклостей на рундисте огранки.
+	//  В программе WavyPentagonalStar.html этого параметра нет,
+	// так как при изменении значения указанного параметра практически невозможно
+	// сохранить постоянным число вершин огранки (короны и павильона), 
+	// построенной на таком рундисте.
+	//  Зададим при помощи параметра "Number of petals" число выпуклостей,
+	// например, равным восьми. На таком рундисте можно построить совершенно
+	// другую, но весьма красивую огранку.
+		var girdle = [80];
+		var DEGREE = 0.01745329251994;
+		var M_PI = 3.14159265358979323846;
+		
+		var ctx;
+		var btn_lw_plus, btn_lw_minus; 
+		var btn_e_plus, btn_e_minus; 
+		
+		var gd_x = [80];
+		var gd_y = [80];		
+		
+		var lw = 1.0; 
+		var e = 0.04;
+		var m = 5.0;
+		var num = 1;
+			
+		var canvas;
+		// Canvas coordinates
+		var xC = 700; // Centre x
+		var yC = 300; // Centre y
+		var SCALE = 400;  // SCALE
+		
+		var formula;
+		
+		var btn_lw_minus, btn_lw_plus;
+		var btn_e_minus, btn_e_plus;
+		var btn_m_minus, btn_m_plus;
+		var btn_num_minus, btn_num_plus;
+		var btn_return;
+			
+		function lw_minus() { lw = lw - 0.05; redraw();}
+		function lw_plus() { lw = lw + 0.05; redraw();}
+		
+		function e_minus() 
+		{ 
+			e = e - 0.01;
+			redraw();
+		}
+		
+		function e_plus() 
+		{ 
+			e = e + 0.01;
+			redraw();
+		}		
+		
+		function m_minus() 
+		{ 
+			m = m - 1;
+			if (m < 1) 
+			{
+				m = m + 1;
+				return;
+			}
+			redraw();
+		}
+		
+		function m_plus() 
+		{ 
+			m = m + 1;
+			redraw();
+		}
+		
+		function num_minus() 
+		{ 
+			num = num - 1;
+			if (num < 1) 
+			{
+				num = num + 1;
+				return;
+			}
+			redraw();
+		}
+		
+		function num_plus() 
+		{ 
+			num = num + 1;
+			if (num >= 11) 
+			{
+				num = num - 1;
+				return;
+			}
+			redraw();
+		}
+		
+		function fx(val)
+		{
+			var res = val * SCALE + xC;
+			return res;
+		}
+		
+		function fy(val)
+		{
+			var res = - val * SCALE + yC;
+			return res;
+		}		
+			
+		function initiate(lw)
+		{
+			canvas = document.createElement('canvas');
+			canvas.width = 1200;
+			canvas.height = 600;
+			canvas.style.position = "absolute";
+			canvas.style.border = "1px solid";
+			var body = document.getElementsByTagName("body")[0];
+			body.appendChild(canvas);
+			ctx = canvas.getContext("2d");
+
+			init_girdle();
+			draw_girdle();
+			construction();
+			pars_value();
+			
+			btn_return = new Btn("Return to main view PentagonalStar", "button", "30px", "250px" );
+			btn_return.id.style.width = "270px";
+			btn_return.id.style.height = "50px";
+			btn_return.id.style.background= '#99ddff';
+			btn_return.id.style.borderRadius = "10px";
+			btn_return.id.style.cursor = "pointer";
+			btn_return.id.style.fontSize = "14px";
+			btn_return.id.style.fontWeight = "bold";
+			btn_return.id.style.color = '#000000';;
+			btn_return.id.style.borderWidth = "2px";
+			btn_return.id.style.borderColor = "red";
+			btn_return.name.addEventListener("click", function (){document.location.href = 'WavyPentagonalStar.html';});	
+			
+			AddButtons();
+			AddButtonsPositionSize();
+		}
+
+		function draw_girdle()
+		{
+			var i;
+			for(i = 0; i < 80; i++)
+			{
+				gd_x[i] = fx(girdle[i][0]);
+				gd_y[i] = fy(girdle[i][1]);
+			}				
+			
+			// Draw girdle
+			ctx.beginPath();
+			ctx.moveTo(gd_x[0], gd_y[0]);
+			for (i = 0; i < 80; i++)
+			{
+				ctx.lineTo(gd_x[i], gd_y[i]);
+			}
+			ctx.closePath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#00f';
+			ctx.fillStyle = '#fdf';
+			ctx.fill();
+			ctx.stroke();	
+			
+			
+			// Text and vertexes
+			ctx.fillStyle = '#00f';
+			ctx.strokeStyle = "#F00";
+			ctx.font = "italic 10pt Arial";
+			
+			for (i = 0; i < 80; i = i + 1)
+			{
+				if ( (i == 0) ||  (i == 16)  ||  (i == 32) || (i == 48) || (i == 64) )
+				{
+					rsp(girdle[i], 5);
+				}
+				else
+				{
+					rsp(girdle[i], 4);
+				}
+			}		
+			
+			txt("0", girdle[0], "rt", "up");
+			txt("4", girdle[4], "md", "up");
+			txt("8", girdle[8], "md", "up");
+			txt("12", girdle[12], "rt", "up");
+			txt("16", girdle[16], "rt", "up");
+			txt("20", girdle[20], "rt", "md");
+			txt2("24", girdle[24], "lt", "md");
+			txt("28", girdle[28], "md", "dn");
+			txt("32", girdle[32], "md", "dn");
+			
+			txt("36", girdle[36], "md", "dn");
+			txt("40", girdle[40], "lt", "dn");
+			txt("44", girdle[44], "lt", "md");
+			txt("48", girdle[48], "rt", "up");
+			txt("52", girdle[52], "lt", "md");
+			txt("56", girdle[56], "rt", "dn");
+			txt("60", girdle[60], "md", "up");
+			txt("64", girdle[64], "md", "up");
+			txt("68", girdle[68], "md", "up");
+			txt("72", girdle[72], "md", "up");
+			txt("76", girdle[76], "md", "up");
+		}
+			
+		function construction()	
+		{
+				// Axis x, y
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';			
+			ctx.moveTo(fx(-0.7), fy(0));
+			ctx.lineTo(fx(0.7), fy(0));
+			ctx.moveTo(fx(0), fy(-0.7));
+			ctx.lineTo(fx(0), fy(0.7));
+			ctx.stroke();
+		}
+		
+		function init_girdle()
+		{
+			var R = 0.5;
+			var m1 = 1/m; 
+
+			// e - Girdle convexity
+			var kf = 0.5 / (R + m1*R + e);
+			var gd = [80];
+			var i;
+			var fi = 0;
+			var nPoints = 80;
+
+			var del = m * 2 * M_PI / nPoints;
+			var t = 0.0;
+			var h = e;
+			var d = DEGREE * 90;
+
+			for (i = 0; i < nPoints; i++)
+			{
+				t = i * del;
+				if (num >= 1 && num < 2)
+				{
+					h = e;
+				}
+				if (num >= 2 && num < 3)
+				{
+					h = e * Math.cos(t) * Math.cos(t);
+				}
+				else if (num >= 3 && num < 4)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t); // 4
+				}
+				else if (num >= 4 && num < 5)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t); // 6
+				}
+				else if (num >= 5 && num < 6)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t);
+				}
+				else if (num >= 6 && num < 7)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t);
+				}
+				else if (num >= 7 && num < 8)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t);
+				}
+				else if (num >= 8 && num < 9)
+				{
+					h = e * Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t)*Math.cos(t);
+				}
+				else if (num >= 9 && num < 10)
+				{
+					h = e * Math.cos(t) * Math.cos(2*t) * Math.cos(t) * Math.cos(2*t);
+				}
+				
+				else if (num >= 10 && num < 11)
+				{
+					h = e * Math.cos(3*t) * Math.cos(2*t) * Math.cos(3*t) * Math.cos(2*t);
+				}
+
+				gd[i] = new Point2D();
+				// Линия рундиста данной огранки является кривой, которая имеет название эпитрохоида.
+				// При Wavy = 1 ( num = 1 ) имеем классическую эпитрохоиду.
+				// Классическая эпитрохоида получается при h = const.
+				// Коэффициент h если, если он не "const" и задается набором произведений косинусов параметра t, 
+				// то он задает дополнительную "волнистость" линии рундиста.
+				// Волнистость меняется при помощи параметра Wavy, который изменяет значение num
+				// определяющего количество cos(t) или даже cos(n*t), где n = 1,2,3....
+				// Замечание.
+				// При помощи достаточно большого количества слагаемых в которые входят
+				// синусы и косинусы можно воспроизвести форму самых разных кривых.
+				
+				// Параметрические уравнения эпитрохоиды
+				// m1 = 1/m где m - в настоящей программе опредедяет "количество лепестков".
+				gd[i][0] = (R + m1*R)*Math.cos(m1*t+d) - h*Math.cos(t + m1*t+d);
+				gd[i][1] = (R + m1*R)*Math.sin(m1*t+d) - h*Math.sin(t + m1*t+d);
+
+				gd[i][0] = gd[i][0] * kf;
+				gd[i][1] = gd[i][1] * kf;
+			}
+
+			for (i = 1; i < nPoints/2; i++)
+			{
+				girdle[i] = new Point2D();
+				girdle[i][0] = -gd[nPoints/2 - i][0] * lw;
+				girdle[i][1] = -gd[nPoints/2 - i][1];
+			}
+
+			for (i = 1; i < nPoints/2; i++)
+			{
+				girdle[nPoints - i] = new Point2D();
+				girdle[nPoints - i][0] = -gd[nPoints/2 + i][0] * lw;
+				girdle[nPoints - i][1] = -gd[nPoints/2 + i][1];
+			}
+
+			girdle[0] = new Point2D();
+			girdle[0][0] = -gd[nPoints/2][0];
+			girdle[0][1] = -gd[nPoints/2][1];
+
+			girdle[nPoints/2] = new Point2D();
+			girdle[nPoints/2][0] = -gd[0][0];
+			girdle[nPoints/2][1] = -gd[0][1];
+		
+		}
+		
+		function Btn (name, where, left, top )
+		{
+			this.name = name;
+			this.name = document.createElement('input');
+			this.name.type = 'button';
+			this.name.value = name;
+			this.id = document.body.appendChild(this.name);
+			this.id.style = "position: absolute";
+			this.id.style.background='#0fff0';
+			this.id.style.top = top;
+			this.id.style.left = left;
+			this.id.style.width = "30px";
+			this.id.style.cursor = "pointer";
+		}		
+		
+		function AddButtons()
+		{
+			btn_lw_minus = new Btn("-", "lw_minus", "170px", "100px" );
+			btn_lw_plus = new Btn("+", "lw_plus", "200px", "100px" );
+			btn_lw_minus.name.addEventListener("click", lw_minus);
+			btn_lw_plus.name.addEventListener("click", lw_plus);			
+
+			btn_e_minus = new Btn("-", "button", "170px", "120px" );
+			btn_e_plus = new Btn("+", "button", "200px", "120px" );
+			btn_e_minus.name.addEventListener("click", e_minus);
+			btn_e_plus.name.addEventListener("click", e_plus);	
+
+			btn_m_minus = new Btn("-", "button", "170px", "140px" );
+			btn_m_plus = new Btn("+", "button", "200px", "140px" );
+			btn_m_minus.name.addEventListener("click", m_minus);
+			btn_m_plus.name.addEventListener("click", m_plus);		
+
+			btn_num_minus = new Btn("-", "button", "170px", "160px" );
+			btn_num_plus = new Btn("+", "button", "200px", "160px" );
+			btn_num_minus.name.addEventListener("click", num_minus);
+			btn_num_plus.name.addEventListener("click", num_plus);				
+		}
+		
+		function pars_value()
+		{
+			// Text before buttons
+			ctx.font = "italic 10pt Arial";
+			
+			var text = "Girdle ratio (lw)";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 110);		
+			text = roundNumber(lw, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 110);	
+			
+			text = "Girdle convexity ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 130);		
+			text = roundNumber(e, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 130);
+
+			text = "Number of petals ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 150);		
+			text = roundNumber(m, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 150);	
+
+			text = "Wavy ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 170);		
+			text = roundNumber(num, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 170);	
+
+			ctx.font = '30px "Times New Roman"';
+			ctx.fillStyle = 'rgba(100, 0, 255, 1)'
+			ctx.fillText('PentagonalStar - girdle (80 vertices)', 10, 50);			
+		}	
+
+		function roundNumber(num, places) 
+		{
+			var t =  Math.round(num * Math.pow(10, places)) / Math.pow(10, places);
+			return t;
+		}
+		
+		function redraw()
+		{
+			ctx.clearRect(0, 0, 1200, 800);
+			init_girdle();
+//			ctx.putImageData(formula, 10, 200);
+			draw_girdle();
+			construction();		
+			pars_value();
+		}
+		
+		// Mouse
+		var mouseDown = false;
+		var lastMouseX = null;
+		var lastMouseY = null;
+		
+		function addHandler(object, event, handler) 
+		{
+			if (object.addEventListener) {
+				object.addEventListener(event, handler, false);
+		}
+		else if (object.attachEvent) 
+		{
+		  object.attachEvent('on' + event, handler);
+		}
+		else alert("Обработчик не поддерживается");
+		}
+		addHandler(window, 'DOMMouseScroll', wheel);
+		addHandler(window, 'mousewheel', wheel);
+		addHandler(document, 'mousewheel', wheel);		
+		
+		
+		function handleMouseDown(event) 
+		{
+			mouseDown = true;
+			lastMouseX = event.clientX;
+			lastMouseY = event.clientY;
+			document.body.style.cursor = "move";
+		}
+
+		function handleMouseUp(event) 
+		{
+			document.body.style.cursor = "default";
+			mouseDown = false;
+		}
+
+		function handleMouseMove(event) 
+		{
+			if (!mouseDown) 
+			{
+				return;
+			}
+			else
+			{
+				var newX = event.clientX;
+				var newY = event.clientY;
+
+				var deltaX = newX - lastMouseX;
+				if (deltaX < 0) // left
+				{
+					xC = xC - 5;
+				}
+				if (deltaX > 0) // left
+				{
+					xC = xC + 5;
+				}
+				
+				var deltaY = newY - lastMouseY;
+				if (deltaY < 0) // left
+				{
+					yC = yC - 5;
+				}
+				if (deltaY > 0) // left
+				{
+					yC = yC + 5;
+				}
+
+				lastMouseX = newX
+				lastMouseY = newY;
+				redraw();
+			}
+		}
+
+		function wheel(event) 
+		{
+			var delta; // Направление колёсика мыши
+			event = event || window.event;
+			// Opera и IE работают со свойством wheelDelta
+			if (event.wheelDelta) 
+			{ // В Opera и IE
+				delta = event.wheelDelta / 120;
+				// В Опере значение wheelDelta такое же, но с противоположным знаком
+				if (window.opera) 
+					delta = -delta; // Дополнительно для Opera
+			}
+			else if (event.detail) 
+			{ // Для Gecko
+				delta = -event.detail / 3;
+			}
+			// Запрещаем обработку события браузером по умолчанию
+			if (event.preventDefault) 
+				event.preventDefault();
+			event.returnValue = false;
+			//alert(delta); // Выводим направление колёсика мыши
+			SCALE = SCALE + 5 * delta; 
+			redraw();
+		}
+		
+        //canvas.onmousedown = handleMouseDown;
+		document.onmousedown = handleMouseDown;
+        document.onmouseup = handleMouseUp;
+        //canvas.onmousemove = handleMouseMove;
+		document.onmousemove = handleMouseMove;
+		
+		document.addEventListener('keydown', function(event)
+		{
+			var code = event.keyCode;
+			if (code == 37) 
+			{          
+			// left
+				xC = xC - 5; redraw()
+			  //is_moving_left = true;
+			}
+			if (code == 38) 
+			{                                   // up
+				yC = yC - 5; redraw();
+			  //is_moving_forward = true;
+			}
+			if (code == 39) 
+			{                                   // right
+			  xC = xC + 5; redraw()
+			  //is_moving_right = true;
+			}
+			if (code == 40) 
+			{                                   // down
+			  yC = yC + 5; redraw();
+			  //is_moving_back = true;
+			}
+			if (code == 188) 
+			{
+				SCALE = SCALE - 5; redraw();
+			}
+			if (code == 190) 
+			{
+				SCALE = SCALE + 5; redraw();
+			}
+		});
+
+		document.addEventListener('keyup', function(event) 
+		{
+			var code = event.keyCode;
+
+		//	if (code == 37) is_moving_left = false;
+		//	if (code == 38) is_moving_forward = false;
+		//	if (code == 39) is_moving_right = false;
+		//	if (code == 40) is_moving_back = false;
+		});
+			
+		function rs(x, y, s)
+		{
+			ctx.fillRect(x-s/2, y-s/2, s, s);
+		}
+			
+		function rsp(point, s)
+		{
+			ctx.fillRect( fx(point[0]) - s/2, fy(point[1]) - s/2, s, s);
+		}		
+		
+		function txt(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}		
+				
+		function txt2(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}			
+		
+		function arrow() 
+		{
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}		
+		
+		function arr(point, ang, scale) 
+		{
+			ctx.save();
+			ctx.translate(fx(point[0]), fy(point[1]));
+			ctx.scale(scale, scale);
+			ctx.rotate(ang);
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+			ctx.restore();
+		}
+			
+		addEventListener("load", initiate);
+		
+	</script>
+</head>
+
+<body>
+</body>
+</html>

@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Heart Girdle</title>
+	<script src="../libs/WebGeometry.js"></script>
+	<script src="../libs/buttons.js"></script>
+	
+	<script>
+		var girdle = [100];
+		var girdle2 = [54];
+		var DEGREE = 0.01745329251994;
+
+		var ctx;
+		var btn_lw_plus, btn_lw_minus; 
+		var btn_vp_minus, btn_vp_plus;
+		var btn_return;
+		
+		var gd_x = [100];
+		var gd_y = [100];		
+		
+		var vp = 9.0*DEGREE;  //  Угол, определяющий степень отклонения 
+			 // кривой Ellipse_2 от окружности (см. парметры огранки груша)
+		var pearRt = 1.8; // Задает отношение длина/ширина для груши
+		var lambda = 20.0*DEGREE; // Задает угол наклона груши
+		var Lh = 0.289;     // Отклонение смещения самого широкого места груши
+		
+		//  Следующие восемь параметров определяют положение узловых вершин 
+		// на рундисте огранки. Названия параметров привязаны к рисунку короны -
+		// к ребрам нижних клиньев и главным четырехугольным граням короны.
+		var DelAngGirdle_6 = 0;	// "Bone angle 1" -> ребро короны 8 - g6
+		var DelAngGirdle_12 = 0;	// "Bone angle 2" -> ребро короны 8 - g12
+		var DelAngGirdle_18 = 0; // "Facet angle A" -> грань A короны
+		var DelAngGirdle_26 = 0;	// "Bone angle 3" -> ребро короны 9 - g26
+		var DelAngGirdle_34 = 0;	// "Facet angle B" -> грань B короны
+		var DelAngGirdle_38 = 0;	// "Bone angle 4" -> ребро короны 10 - g38
+		var DelAngGirdle_42 = 0;	// "Facet angle C" -> грань C короны
+		var DelAngGirdle_46 = 0;	// DelAngGirdle_46 "Bone angle 5"
+			
+		var canvas;
+		// Canvas coordinates
+		var xC = 600; // Centre x
+		var yC = 250; // Centre y
+		var SCALE = 300;  // SCALE
+		
+		var a, b, s, q, t, u, v, g, gamma, fi, psi;
+		
+		var formula;
+		
+		var lambda_str = String.fromCharCode(955);
+		
+		function lambda_minus()	
+		{ 
+			lambda = lambda - 0.5*DEGREE; 
+			
+			if (lambda < 0)
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				lambda = lambda + 0.5*DEGREE;
+				return;
+			}
+			redraw();
+		}
+
+		function lambda_plus()	
+		{ 
+			lambda = lambda + 0.5*DEGREE; 
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				lambda = lambda - 0.5*DEGREE;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				lambda = lambda - 0.5*DEGREE;
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				lambda = lambda - 0.5*DEGREE;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				lambda = lambda - 0.5*DEGREE;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				lambda = lambda - 0.5*DEGREE;
+				return;
+			}
+			
+			redraw();
+		}
+			
+		function vp_minus() 
+		{ 
+			vp = vp - DEGREE;
+
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				vp = vp + DEGREE;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				vp = vp + DEGREE;
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				vp = vp + DEGREE;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				vp = vp + DEGREE;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				vp = vp + DEGREE;
+				return;
+			}
+			redraw();
+		}
+
+		function vp_plus() 
+		{ 
+			vp = vp + DEGREE; 
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				vp = vp - DEGREE;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				vp = vp - DEGREE;
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				vp = vp - DEGREE;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				vp = vp - DEGREE;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				vp = vp - DEGREE;
+				return;
+			}
+			redraw();
+		}
+
+		function Lh_minus() 
+		{ 
+			Lh = Lh - 0.01; 
+
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				Lh = Lh + 0.01; 
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				Lh = Lh + 0.01; 
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				Lh = Lh + 0.01; 
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				Lh = Lh + 0.01;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				Lh = Lh + 0.01; 
+				return;
+			}
+			redraw();
+		}
+
+		function Lh_plus() 
+		{ 
+			Lh = Lh + 0.01; 
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				Lh = Lh - 0.01; 
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				Lh = Lh - 0.01;
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				Lh = Lh - 0.01; 
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				Lh = Lh - 0.01;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				Lh = Lh - 0.01; 
+				return;
+			}			
+			redraw();
+		}	
+	
+		function pearRt_minus()	
+		{ 
+			pearRt = pearRt - 0.05; 
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				pearRt = pearRt + 0.05;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				pearRt = pearRt + 0.05; 
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				pearRt = pearRt + 0.05;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				pearRt = pearRt + 0.05;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				pearRt = pearRt + 0.05;
+				return;
+			}				
+			
+			
+			redraw();
+		}	
+
+		function pearRt_plus()	
+		{ 
+			pearRt = pearRt + 0.05; 
+			
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0)
+			{
+				pearRt = pearRt - 0.05;
+				return;
+			}
+			var u = 2*pearRt - g;
+			if (u < 0)
+			{
+				pearRt = pearRt - 0.05; 
+				return;
+			}
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2)
+			{
+				pearRt = pearRt - 0.05;
+				return;
+			}
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+			{
+				pearRt = pearRt - 0.05;
+				return;
+			}
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+			if ( (Math.sin(lambda) * u) > 1 )
+			{
+				pearRt = pearRt - 0.05;
+				return;
+			}							
+			
+			redraw();
+		}		
+	
+		function DelAngGirdle_6_minus()	
+		{ 
+			DelAngGirdle_6 = DelAngGirdle_6 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_6_plus()	
+		{ 
+			DelAngGirdle_6 = DelAngGirdle_6 + DEGREE; 
+			redraw();
+		}		
+
+		function DelAngGirdle_12_minus()	
+		{ 
+			DelAngGirdle_12 = DelAngGirdle_12 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_12_plus()	
+		{ 
+			DelAngGirdle_12 = DelAngGirdle_12 + DEGREE; 
+			redraw();
+		}		
+	
+		function DelAngGirdle_18_minus()	
+		{ 
+			DelAngGirdle_18 = DelAngGirdle_18 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_18_plus()	
+		{ 
+			DelAngGirdle_18 = DelAngGirdle_18 + DEGREE; 
+			redraw();
+		}	
+	
+		function DelAngGirdle_26_minus()	
+		{ 
+			DelAngGirdle_26 = DelAngGirdle_26 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_26_plus()	
+		{ 
+			DelAngGirdle_26 = DelAngGirdle_26 + DEGREE; 
+			redraw();
+		}	
+	
+		function DelAngGirdle_34_minus()	
+		{ 
+			DelAngGirdle_34 = DelAngGirdle_34 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_34_plus()	
+		{ 
+			DelAngGirdle_34 = DelAngGirdle_34 + DEGREE; 
+			redraw();
+		}
+
+		function DelAngGirdle_38_minus()	
+		{ 
+			DelAngGirdle_38 = DelAngGirdle_38 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_38_plus()	
+		{ 
+			DelAngGirdle_38 = DelAngGirdle_38 + DEGREE; 
+			redraw();
+		}		
+	
+		function DelAngGirdle_42_minus()	
+		{ 
+			DelAngGirdle_42 = DelAngGirdle_42 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_42_plus()	
+		{ 
+			DelAngGirdle_42 = DelAngGirdle_42 + DEGREE; 
+			redraw();
+		}	
+	
+		function DelAngGirdle_46_minus()	
+		{ 
+			DelAngGirdle_46 = DelAngGirdle_46 - DEGREE; 
+			redraw();
+		}	
+		function DelAngGirdle_46_plus()	
+		{ 
+			DelAngGirdle_46 = DelAngGirdle_46 + DEGREE; 
+			redraw();
+		}	
+	
+		function lambda_0()
+		{	
+			lambda = 0;
+			DelAngGirdle_6 = 0;	// "Bone angle 1" -> ребро короны 8 - g6
+			DelAngGirdle_12 = 0;	// "Bone angle 2" -> ребро короны 8 - g12
+			DelAngGirdle_18 = 0; // "Facet angle A" -> грань A короны
+			DelAngGirdle_26 = 0;	// "Bone angle 3" -> ребро короны 9 - g26
+			DelAngGirdle_34 = 0;	// "Facet angle B" -> грань B короны
+			DelAngGirdle_38 = 0;	// "Bone angle 4" -> ребро короны 10 - g38
+			DelAngGirdle_42 = 0;	// "Facet angle C" -> грань C короны
+			DelAngGirdle_46 = 0;
+			redraw();
+		}				
+	
+		function fx(val)
+		{
+			var res = val * SCALE + xC;
+			return res;
+		}
+		
+		function fy(val)
+		{
+			var res = - val * SCALE + yC;
+			return res;
+		}		
+			
+		function initiate(lw)
+		{
+			canvas = document.createElement('canvas');
+			canvas.width = 1200;
+			canvas.height = 600;
+			canvas.style.position = "absolute";
+			canvas.style.border = "1px solid";
+			var body = document.getElementsByTagName("body")[0];
+			body.appendChild(canvas);
+			ctx = canvas.getContext("2d");
+			
+			btn_return = new Btn("Return to main view Heart", "button", "60px", "470px" );
+			btn_return.id.style.width = "260px";
+			btn_return.id.style.height = "50px";
+			btn_return.id.style.background= '#99ddff';
+			btn_return.id.style.borderRadius = "10px";
+			btn_return.id.style.cursor = "pointer";
+			btn_return.id.style.fontSize = "14px";
+			btn_return.id.style.fontWeight = "bold";
+			btn_return.id.style.color = '#000000';;
+			btn_return.id.style.borderWidth = "2px";
+			btn_return.id.style.borderColor = "red";
+			btn_return.name.addEventListener("click", function (){document.location.href = 'Heart.html';});			
+			
+			init_girdle();
+			draw_girdle();
+			construction();
+			pars_value();
+			AddButtons();
+			AddButtonsPositionSize();
+		}
+
+		function draw_girdle()
+		{
+			var i;
+
+			for(i = 0; i < 100; i++)
+			{
+				gd_x[i] = fx(girdle[i][0]);
+				gd_y[i] = fy(girdle[i][1]);
+			}				
+
+	
+			// Draw girdle
+			ctx.beginPath();
+			ctx.moveTo(gd_x[0], gd_y[0]);
+			for (i = 0; i < 100; i++)
+			{
+				ctx.lineTo(gd_x[i], gd_y[i]);
+			}
+			ctx.closePath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#00f';
+			//ctx.fillStyle = '#fdf';
+			//ctx.fill();
+			ctx.stroke();	
+			ctx.lineWidth = 1;
+			
+			// Text and vertexes
+			ctx.fillStyle = '#00f';
+			ctx.strokeStyle = "#F00";
+			ctx.font = "italic 10pt Arial";
+			
+			for (i = 0; i < 100; i = i + 1)
+			{
+				if ( (i == 0) ||  (i == 6)  ||  (i == 12) || (i == 18) || (i == 26) || (i == 34) ||
+					 (i == 38) || (i == 42) || (i == 46) || (i == 50) || (i == 54) ||
+					 (i == 58) || (i == 62) || (i == 66) || (i == 74) || (i == 82) || (i == 88) || (i == 94) )
+				{
+					rsp(girdle[i], 7);
+				}
+				else
+				{
+					rsp(girdle[i], 3);
+				}
+			}		
+			if (lambda < 5*DEGREE)
+			{
+				txt2("0", girdle[0], "md", "dn");
+				txt2("26", girdle[26], "rt", "md");
+				txt2("34", girdle[34], "rt", "md");
+				txt2("38", girdle[38], "rt", "md");
+				txt("42", girdle[42], "rt", "dn");
+				txt2("46", girdle[46], "md", "dn");
+				
+				txt2("50", girdle[50], "md", "dn");
+				
+				txt("54", girdle[54], "lt", "dn");
+				txt("58", girdle[58], "lt", "dn");
+				txt("62", girdle[62], "lt", "dn");
+				txt("66", girdle[66], "lt", "md");
+				txt("74", girdle[74], "lt", "md");
+			}
+			else
+			{
+				txt2("0", girdle[0], "md", "dn");
+				txt2("6", girdle[6], "md", "up");
+				txt2("12", girdle[12], "md", "up");
+				txt2("18", girdle[18], "rt", "md");
+				txt2("26", girdle[26], "rt", "md");
+				txt2("34", girdle[34], "rt", "md");
+				txt2("38", girdle[38], "rt", "md");
+				txt("42", girdle[42], "rt", "dn");
+				txt2("46", girdle[46], "md", "dn");
+				
+				txt2("50", girdle[50], "md", "dn");
+				
+				txt("54", girdle[54], "lt", "dn");
+				txt("58", girdle[58], "lt", "dn");
+				txt("62", girdle[62], "lt", "dn");
+				txt("66", girdle[66], "lt", "md");
+				txt("74", girdle[74], "lt", "md");
+				txt("82", girdle[82], "lt", "up");
+				txt("88", girdle[88], "md", "up");
+				txt2("94", girdle[94], "md", "up");	
+			}
+		}
+			
+		function construction()	
+		{
+			// Axis x, y
+			ctx.moveTo(fx(-0.7), fy(0));
+			ctx.lineTo(fx(0.7), fy(0));
+			ctx.moveTo(fx(0), fy(-2));
+			ctx.lineTo(fx(0), fy(0.55));
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#000';	
+			ctx.stroke();
+			
+			ctx.fillStyle = '#000';
+			txt2("Pear 1", girdle[76], "lt", "up");	
+			txt2("Pear 2", girdle[24], "rt", "up");			
+			
+			
+			var O = [0, 0];
+			ctx.fillStyle = '#000';
+			rsp(O, 6);
+			txt2("O", O, "lt", "dn");
+			
+			var B = [0, girdle[50][1]];
+			
+			if (lambda > 0.4*DEGREE)
+			{
+				var pt1 = new Point2D(2*Math.sin(lambda), 2*Math.cos(lambda) + girdle[50][1]);
+				ctx.moveTo(fx(B[0]), fy(B[1]));
+				ctx.lineTo(fx(pt1[0]), fy(pt1[1]));
+				ctx.moveTo(fx(B[0]), fy(B[1]));
+				ctx.lineTo(fx(-pt1[0]), fy(pt1[1]));			
+				ctx.strokeStyle = '#000';	
+				ctx.stroke();
+			}
+
+			var s_lambda = String.fromCharCode(955);
+			
+			if (lambda > 0)
+			{
+				ctx.fillStyle = '#f00';
+				draw_angle(B, 1.5*Math.PI, 1.5*Math.PI + lambda, 80);
+				ctx.fillText(s_lambda, fx(B[0]) + 10, fy(B[1]) - 90);
+
+				ctx.fillStyle = '#f00';
+				draw_angle(B, 1.5*Math.PI - lambda, 1.5*Math.PI, 84);
+				ctx.fillText(s_lambda, fx(B[0]) - 15, fy(B[1]) - 90);
+			}
+			if ( (lambda < 2*DEGREE) && (DelAngGirdle_34 < DEGREE) )
+			{
+				ctx.moveTo(fx(girdle[34][0]), fy(girdle[34][1]));
+				ctx.lineTo(fx(girdle[34][0]), fy(1.5));
+				ctx.strokeStyle = '#000';	
+				ctx.lineWidth = 0.5;
+				ctx.stroke();			
+			
+				ctx.moveTo(fx(girdle[66][0]), fy(girdle[66][1]));
+				ctx.lineTo(fx(girdle[66][0]), fy(1.5));
+				ctx.strokeStyle = '#000';	
+				ctx.stroke();		
+				
+				ctx.moveTo(fx(girdle[66][0]), fy(0.6));
+				ctx.lineTo(fx(girdle[34][0]), fy(0.6));
+				ctx.strokeStyle = '#000';	
+				ctx.stroke();		
+				var pt1 = [girdle[66][0], 0.6];
+				arr(pt1, 1.5*Math.PI, 0.2);
+				var pt2 = [girdle[34][0], 0.6];
+				arr(pt2, 0.5*Math.PI, 0.2);
+				var pt_width = [0, 0.6];
+				ctx.fillStyle = '#ff0000';
+				txt2("Pear width", pt_width, "md", "up");
+				var pt_length = [0.8,(girdle[0][1] + girdle[50][1])/2];
+				txt2("Pear length", pt_length, "rt", "md");
+				//
+				ctx.moveTo(fx(girdle[50][0]), fy(girdle[50][1]));
+				ctx.lineTo(fx(1), fy(girdle[50][1]));
+				ctx.strokeStyle = '#000';	
+				ctx.lineWidth = 0.5;
+				ctx.stroke();			
+			
+				ctx.moveTo(fx(girdle[0][0]), fy(girdle[0][1]));
+				ctx.lineTo(fx(1), fy(girdle[0][1]));
+				ctx.strokeStyle = '#000';	
+				ctx.lineWidth = 0.5;
+				ctx.stroke();	
+				
+				ctx.moveTo(fx(0.8), fy(girdle[50][1]));
+				ctx.lineTo(fx(0.8), fy(girdle[0][1]));
+				ctx.strokeStyle = '#000';	
+				ctx.stroke();		
+				var pt1 = [0.8, girdle[0][1]];
+				arr(pt1, 0, 0.2);
+				var pt2 = [0.8, girdle[50][1]];
+				arr(pt2, -Math.PI, 0.2);				
+			}
+		}
+		
+		function draw_angle(point, ang_b, ang_e, radius)
+		{
+			ctx.beginPath();
+			ctx.arc(fx(point[0]), fy(point[1]), radius, ang_b, ang_e, false);
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+		}
+		
+		function draw_angle2(point, ang_b, ang_e, radius)
+		{
+			ctx.beginPath();
+			ctx.arc(fx(point[0]), fy(point[1]), radius, ang_b, ang_e, true);
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#f00';
+			ctx.stroke();
+		}
+		
+		function init_girdle()
+		{
+			// Полагаем, что Lh = 1 / (2*pRt)
+			// Из этого предположения следует:
+			//    g = 2 * pRt * Lh = 1
+			//    u = 2 * pRt * (1 - Lh) = 2*pRt - 1
+		
+			var i;
+			// Переменные A, B и C определяют уравнение A*x + B*y + C = 0
+			var A, B, C;
+			var angle_current, delta, x, y, x_rez, y_rez;
+			var rez = [2];
+			var pRt = pearRt;
+			var v = pearRt * Lh - 0.5;
+			var g = 1. + v + v;
+			if (g < 0) 
+				return null;
+			var u = 2*pearRt - g;
+			if (u < 0)
+				return null;
+			var psi = vp + Math.asin ( (u + u) / (u * u + 1.0));
+			if (psi >= Math.PI/2) 
+				return null;
+			var t = u * Math.tan(psi);
+			if (t <= 2) 
+				return null;
+			// Величины a и b - полуоси эллипса
+			var a = (t - 1.) / (t - 2.);
+			var s = a - 1;
+			var b = u * ( 1.- t ) / Math.sqrt ( t * t - ( t + t ) );
+
+			if ( (Math.sin(lambda) * u) > 1 ) 
+				return null;
+			// Начальное и конечное значение углов определяющих дуги эллипсов
+			var Start, Finish;
+			Start = - lambda - Math.PI/2 + Math.acos(Math.sin(lambda) * u );
+			Finish = lambda / 2 + DelAngGirdle_18; 
+			girdle2[0] = new Point2D(Math.sin(Start), g * Math.cos(Start));
+
+			var del_ang = (Finish - Start) / 3.0;
+			var g0 = Start;
+			var g6 = Start + del_ang + DelAngGirdle_6;
+			var g12 = Start + del_ang + del_ang + DelAngGirdle_12;
+			var g18 = Finish;
+
+			Fill_Arc_Ellipse(0, 6, Start, (g6 - g0) / 6, g);
+			Fill_Arc_Ellipse(0+6, 6, g6, (g12 - g6) / 6, g);
+			Fill_Arc_Ellipse(0+6+6, 6, g12, (g18 - g12) / 6, g);
+
+			Start = Finish;  // Начало двух восьмиэлементных сегментов
+			Finish = Math.PI/2 + DelAngGirdle_26 * Math.acos(s / a); // значение угла, где кончаются два 8-элементных сегмента
+
+			var ang_down = Math.acos(s / a);
+			var ang_down_gr = 180 * ang_down / Math.PI;
+
+			if (DelAngGirdle_34 <= 0.0)
+			{
+				// Смещение вершины рундиста в сторону Ellipse_1
+				var ang_0_34 = Math.PI/2 + DelAngGirdle_34;
+				var E = new Point2D(Math.sin(ang_0_34), Math.cos(ang_0_34));
+				var alpha = Math.atan2(E[1], (E[0] + s));
+				var ang_34_50 = ang_down + alpha;
+				var ang_34_50_gr = 180 * ang_34_50 / Math.PI;
+
+				// Вершины рундиста лежащие на Ellipse_1
+				Finish = Start + (ang_0_34 - Start) / 2.0 + DelAngGirdle_26;
+				del_ang = (Finish - Start) / 8.0;
+
+				Fill_Arc_Ellipse(18, 8, Start, del_ang, g);
+
+				Start = Finish;
+				Finish = ang_0_34;
+				del_ang = (Finish - Start) / 8.0;
+
+				Fill_Arc_Ellipse(26, 8, Start, del_ang, g);
+
+				Start = Finish;
+				del_ang = ang_34_50 / 4.0;
+
+				var g34 = Start;
+				var g38 = Start + del_ang + DelAngGirdle_38;
+				var g42 = Start + del_ang + del_ang + DelAngGirdle_42;
+				var g46 = Start + del_ang + del_ang + del_ang + DelAngGirdle_46;
+				var g50 = Start + ang_34_50;
+
+				// Вершины рундиста лежащие на Ellipse_2
+				var j = 49;
+				angle_current = Math.acos (s / a);
+				var gr_angle_current = angle_current * 180.0 / Math.PI;
+
+				for ( i = 15; i > 0; i-- )
+				{
+					if (i < 4)
+						delta = (g38 - g34) / 4;
+					else if (i < 8)
+						delta = (g42 - g38) / 4;
+					else if (i < 12)
+						delta = (g46 - g42) / 4;
+					else
+						delta = (g50 - g46) / 4;
+
+					angle_current = angle_current - delta;
+					var angle_current_gr = 180 * angle_current / Math.PI;
+					if (angle_current <= 0)
+					{
+						x = a * Math.cos(angle_current) - s;
+						y = b * Math.sin(angle_current);
+						
+						// k - угловой коэффициент прямой
+						var k = y/(x+s);
+						//  Находим координаты точки,
+						// лежащей на пересечении прямой с Ellipse_1
+						A = g*g + k*k;
+						B = 2*k*k*s;
+						C = s*s*k*k - g*g;
+						// x_rez и x_yez - координаты точки пересечения
+						bRez = QuadraticEquation(A, B, C, rez);
+						if (rez[0] > rez[1])
+							x_rez = rez[0];
+						else
+							x_rez = rez[1];
+						y_rez = (x_rez + s)*k;
+				
+						girdle2[j] = new Point2D(x_rez, y_rez);
+						j--;
+					}
+					else
+					{
+						girdle2[j] = new Point2D(a * Math.cos(angle_current) - s, b * Math.sin (angle_current));
+						j--;
+					}
+				}
+				// Остальные вершины
+				girdle2[50] = new Point2D(0, - u);
+			}
+			else
+			{
+				// Смещение вершины рундиста в сторону носика сердца
+				// DelAngGirdle_34 > 0.0
+				var N = new Point2D(a * Math.cos(DelAngGirdle_34) - s, b * Math.sin(DelAngGirdle_34)); 
+
+				// Находим точку M пересечения прямой ON с Ellipse_1
+				var k = N[1]/N[0];
+				var crown_angle = Math.atan2(-N[1], N[0]);
+
+				var ang_0_34 = Math.PI/2 + crown_angle;
+				var ang_34_50 = ang_down - DelAngGirdle_34;
+
+				// Вершины рундиста лежащие на Ellipse_1
+				Finish = Start + (ang_0_34 - Start) / 2.0 + DelAngGirdle_26;
+				del_ang = (Finish - Start) / 8.0;
+
+				Fill_Arc_Ellipse(18, 8, Start, del_ang, g);
+
+				Start = Finish;
+				Finish = ang_0_34;
+				del_ang = (Finish - Start) / 8.0;
+
+				for ( i = 1; i <= 8; ++ i )
+				{
+					if ( (Start + i * del_ang) > Math.PI/2)
+					{
+						var x = Math.sin(Start + i * del_ang);	// B2[0]
+						var y = Math.cos(Start + i * del_ang);	// B2[1]
+						var k = y / x;
+
+						b = - b;
+
+						A = b*b + a*a*k*k;
+						B = 2*b*b*s;
+						C = s*s*b*b - a*a*b*b;
+
+						bRez = QuadraticEquation(A, B, C, rez);
+						b = - b;
+
+						var x_rez;
+						if (rez[0] > rez[1])
+							x_rez = rez[0];
+						else
+							x_rez = rez[1];
+
+						var y_rez = k * x_rez;
+
+						girdle2[26+i] = new Point2D(x_rez, y_rez);
+					}
+					else
+					{
+						girdle2[26+i] = new Point2D (Math.sin(Start + i*del_ang), g * Math.cos(Start + i*del_ang));
+					}
+				}
+
+				Start = Math.PI/2 - crown_angle;
+				del_ang = ang_34_50 / 4.0;
+				var g34 = Start;
+				var g38 = Start + del_ang + DelAngGirdle_38;
+				var g42 = Start + del_ang + del_ang + DelAngGirdle_42;
+				var g46 = Start + del_ang + del_ang + del_ang + DelAngGirdle_46;
+				var g50 = Start + ang_34_50;
+
+				// Вершины рундиста лежащие на Ellipse_2
+				var j = 49;
+				angle_current = Math.acos(s / a);
+				for ( i = 15; i > 0; i-- )
+				{
+					if (i < 4)
+						delta = (g38 - g34) / 4;
+					else if (i < 8)
+						delta = (g42 - g38) / 4;
+					else if (i < 12)
+						delta = (g46 - g42) / 4;
+					else
+						delta = (g50 - g46) / 4;
+
+					angle_current = angle_current - delta;
+					girdle2[j] = new Point2D(a * Math.cos(angle_current) - s,
+											 b * Math.sin(angle_current));
+					j--;
+				}
+				// Остальные вершины
+				girdle2[50] = new Point2D(0, -u);
+			}
+
+			// Определяем координаты трех специальных точек рундиста.
+			// Сдвиг по Y для центрирования груши
+			var pt = new Point2D(0, g);
+			var CenterOffset = g - pt[1];
+
+		//   51 - образ центра груши
+		//   52 - крайняя правая точка (максимальное значение x)
+		//   53 - крайняя верхняя точка (максимальное значение y)
+
+			girdle2[51] = new Point2D (0, -CenterOffset);
+		//	girdle2[52] = new Point2D (sin(Math.PI/2 - lambda), g * cos(Math.PI/2 - lambda));
+			girdle2[52] = new Point2D (Math.cos(lambda), g * Math.sin(lambda));
+		//	girdle2[53] = new Point2D (sin(-lambda), g * cos(-lambda));
+			girdle2[53] = new Point2D (-Math.sin(lambda), g * Math.cos(lambda));
+			
+			// Вершина pPoint[0] определяет точку, где наинизшее значение выреза
+			var v0 = new Vector2D(girdle2[0][0] - girdle2[50][0], girdle2[0][1] - girdle2[50][1]);
+			v0.Normer();
+			// NX и NY новые векторы координатных осей, в которых будем отображать огранку на экране
+			// Рисунок 5.7 показывает направление этих осей.
+			var NX = new Vector2D(v0[1], -v0[0]);
+			var NY = new Vector2D(v0[0], v0[1]);
+
+			// Dot - скалярное произведение векторов
+			// Вспомогательные векторы для нахождения смещения точек рундиста
+			var vStart = new Vector2D(girdle2[50][0], girdle2[50][1]);
+			var vec = new Vector2D(vStart[0] - girdle2[52][0], vStart[1] - girdle2[52][1]);
+			var scalar = NY.Dot(vec);
+			var vTarget = new Vector2D( vStart[0], scalar );
+
+			// Значения величины смещения точек рундиста
+			var displ_x = vTarget[0] - NX.Dot(vStart);
+			var displ_y = vTarget[1] - NY.Dot(vStart);
+
+			//  Проходим по всем точкам рундиста и определяем проекции 
+			// координат x и у каждой точки рундиста на оси NX и NY.
+			//  Таким образом находим координаты точек рундиста в повернутой
+			// системе координат направление осей которой задается векторами NX и NY.
+			for (i = 0; i < 54; i++)
+			{
+				girdle2[i] = new Point2D( NX.Dot(new Vector2D(girdle2[i][0], girdle2[i][1])) + displ_x,
+										  NY.Dot(new Vector2D(girdle2[i][0], girdle2[i][1])) + displ_y );
+			}
+
+			//  В отличие от большинства других огранок ширина огранки сердце измеряется по оси OX,
+			// а длина огранки измеряется вдоль оси OY.
+			// При изменении Girdle Ratio ширина огранки остается постоянной.
+			// Находим коэффициент нормировки ширины и высоты сердца в горизонтальной плоскости
+			// Ширина сердца (по оси OX) дллжна быть равна величине 2 * 0.5
+			// Исходя из расчета рундиста получили ширину сердца равным величине 2 * girdle2[52][0]
+			// Поэтому коэффициент нормировки размеров сердца в горизонтальной плоскости равен:
+			var kf = 0.5 / girdle2[52][0];
+
+			girdle[0] = new Point2D(girdle2[0][0] * kf, girdle2[0][1] * kf);
+			girdle[50] = new Point2D(girdle2[50][0] * kf, girdle2[50][1] * kf);
+
+			for (i = 1; i < 50; i++)
+			{
+				girdle[i] = new Point2D(girdle2[i][0] * kf, girdle2[i][1] * kf);
+				girdle[100-i] = new Point2D(- girdle2[i][0] * kf, girdle2[i][1] * kf);
+			}
+			
+			// pt_Ymax[0] = kf * girdle2[53][0];	
+			// pt_Ymax[1] = kf * girdle2[53][1];
+	
+			return 1;
+		}
+
+		function Fill_Arc_Ellipse (n_begin, n_points, Start, Step, step)
+		{
+			// n_begin - номер первой вершины
+			// n_points - количество вершин
+			var i;
+			for (i = 1; i <= n_points; i++)
+			{
+				var angle = Start + Step * i;
+				girdle2[i + n_begin] = new Point2D(Math.sin(angle), step * Math.cos(angle));
+			}
+		}
+		
+		function Btn (name, where, left, top )
+		{
+			this.name = name;
+			this.name = document.createElement('input');
+			this.name.type = 'button';
+			this.name.value = name;
+			this.id = document.body.appendChild(this.name);
+			this.id.style = "position: absolute";
+			this.id.style.background='#0fff0';
+			this.id.style.top = top;
+			this.id.style.left = left;
+			this.id.style.width = "30px";
+			this.id.style.cursor = "pointer";
+		}		
+		
+		function AddButtons()
+		{
+			btn_lambda_minus = new Btn("-", "button", "170px", "120px" );
+			btn_lambda_plus = new Btn("+", "button", "200px", "120px" );
+			btn_lambda_minus.name.addEventListener("click", lambda_minus);
+			btn_lambda_plus.name.addEventListener("click", lambda_plus);
+		
+			btn_vp_minus = new Btn("-", "button", "170px", "140px" );
+			btn_vp_plus = new Btn("+", "button", "200px", "140px" );
+			btn_vp_minus.name.addEventListener("click", vp_minus);
+			btn_vp_plus.name.addEventListener("click", vp_plus);	
+
+			btn_Lh_minus = new Btn("-", "button", "170px", "160px" );
+			btn_Lh_plus = new Btn("+", "button", "200px", "160px" );
+			btn_Lh_minus.name.addEventListener("click", Lh_minus);
+			btn_Lh_plus.name.addEventListener("click", Lh_plus);	
+			
+			btn_pearRt_minus = new Btn("-", "button", "170px", "180px" );
+			btn_pearRt_plus = new Btn("+", "button", "200px", "180px" );
+			btn_pearRt_minus.name.addEventListener("click", pearRt_minus);
+			btn_pearRt_plus.name.addEventListener("click", pearRt_plus);				
+			
+			
+			btn_DelAngGirdle_6_minus = new Btn("-", "button", "170px", "210px" );
+			btn_DelAngGirdle_6_plus = new Btn("+", "button", "200px", "210px" );
+			btn_DelAngGirdle_6_minus.name.addEventListener("click", DelAngGirdle_6_minus);
+			btn_DelAngGirdle_6_plus.name.addEventListener("click", DelAngGirdle_6_plus);
+
+			btn_DelAngGirdle_12_minus = new Btn("-", "button", "170px", "230px" );
+			btn_DelAngGirdle_12_plus = new Btn("+", "button", "200px", "230px" );
+			btn_DelAngGirdle_12_minus.name.addEventListener("click", DelAngGirdle_12_minus);
+			btn_DelAngGirdle_12_plus.name.addEventListener("click", DelAngGirdle_12_plus);
+			
+			btn_DelAngGirdle_18_minus = new Btn("-", "button", "170px", "250px" );
+			btn_DelAngGirdle_18_plus = new Btn("+", "button", "200px", "250px" );
+			btn_DelAngGirdle_18_minus.name.addEventListener("click", DelAngGirdle_18_minus);
+			btn_DelAngGirdle_18_plus.name.addEventListener("click", DelAngGirdle_18_plus);
+
+			btn_DelAngGirdle_26_minus = new Btn("-", "button", "170px", "270px" );
+			btn_DelAngGirdle_26_plus = new Btn("+", "button", "200px", "270px" );
+			btn_DelAngGirdle_26_minus.name.addEventListener("click", DelAngGirdle_26_minus);
+			btn_DelAngGirdle_26_plus.name.addEventListener("click", DelAngGirdle_26_plus);	
+
+			btn_DelAngGirdle_34_minus = new Btn("-", "button", "170px", "290px" );
+			btn_DelAngGirdle_34_plus = new Btn("+", "button", "200px", "290px" );
+			btn_DelAngGirdle_34_minus.name.addEventListener("click", DelAngGirdle_34_minus);
+			btn_DelAngGirdle_34_plus.name.addEventListener("click", DelAngGirdle_34_plus);		
+			
+			btn_DelAngGirdle_38_minus = new Btn("-", "button", "170px", "310px" );
+			btn_DelAngGirdle_38_plus = new Btn("+", "button", "200px", "310px" );
+			btn_DelAngGirdle_38_minus.name.addEventListener("click", DelAngGirdle_38_minus);
+			btn_DelAngGirdle_38_plus.name.addEventListener("click", DelAngGirdle_38_plus);		
+
+			btn_DelAngGirdle_42_minus = new Btn("-", "button", "170px", "330px" );
+			btn_DelAngGirdle_42_plus = new Btn("+", "button", "200px", "330px" );
+			btn_DelAngGirdle_42_minus.name.addEventListener("click", DelAngGirdle_42_minus);
+			btn_DelAngGirdle_42_plus.name.addEventListener("click", DelAngGirdle_42_plus);			
+			
+			btn_DelAngGirdle_46_minus = new Btn("-", "button", "170px", "350px" );
+			btn_DelAngGirdle_46_plus = new Btn("+", "button", "200px", "350px" );
+			btn_DelAngGirdle_46_minus.name.addEventListener("click", DelAngGirdle_46_minus);
+			btn_DelAngGirdle_46_plus.name.addEventListener("click", DelAngGirdle_46_plus);	
+			
+			var text = lambda_str + " = 0°";
+			btn_lambda = new Btn(text, "button", "170px", "415px" );
+			btn_lambda.id.style.width = "60px";
+			btn_lambda.id.style.color = "#ff0000";
+			btn_lambda.id.style.background = "#ffdddd"; 
+			btn_lambda.name.addEventListener("click", lambda_0);
+		}
+		
+		function pars_value()
+		{
+			var s_psi = String.fromCharCode(968);
+			var s_fi = String.fromCharCode(966);
+			var s_vp = String.fromCharCode(948);
+			
+			// Text before buttons
+			ctx.font = "italic 10pt Arial";
+			
+			var text_lambda = String.fromCharCode(955);
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text_lambda, 30, 130);	
+			text = roundNumber(Math.degrees(lambda), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 130);			
+			
+			var text_ang = s_vp;
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text_ang, 30, 150);	
+			text = roundNumber(Math.degrees(vp), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 150);
+			
+			var text = "Lh ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 30, 170);		
+			text = roundNumber(Lh, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 170);	
+			
+			var text = "Pear length/width ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 190);		
+			text = roundNumber(pearRt, 2);
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 190);
+
+			text = "Delta angle gd. 6 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 220);	
+			text = roundNumber(Math.degrees(DelAngGirdle_6), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 220);	
+			
+			text = "Delta angle gd. 12 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 240);	
+			text = roundNumber(Math.degrees(DelAngGirdle_12), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 240);			
+
+			text = "Delta angle gd. 18 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 260);	
+			text = roundNumber(Math.degrees(DelAngGirdle_18), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 260);			
+
+			text = "Delta angle gd. 26 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 280);	
+			text = roundNumber(Math.degrees(DelAngGirdle_26), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 280);			
+			
+			text = "Delta angle gd. 34 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 300);	
+			text = roundNumber(Math.degrees(DelAngGirdle_34), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 300);		
+
+			text = "Delta angle gd. 38 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 320);	
+			text = roundNumber(Math.degrees(DelAngGirdle_38), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 320);						
+			
+			text = "Delta angle gd. 42 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 340);	
+			text = roundNumber(Math.degrees(DelAngGirdle_42), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 340);			
+			
+			text = "Delta angle gd. 46 ";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 5, 360);	
+			text = roundNumber(Math.degrees(DelAngGirdle_46), 3) + "°";
+			ctx.fillStyle = '#ff0000';
+			ctx.fillText(text, 120, 360);		
+
+			ctx.fillStyle = '#0000ff';
+			text = "Pear l/w  = Pear length / Pear width (  Press button " + text_lambda + "  = 0° )";
+			ctx.fillText(text, 5, 390);			
+			
+			var s_equiv = String.fromCharCode(8801);
+			text = "Pear 1 " + s_equiv + " Pear 2";
+			ctx.fillStyle = "#00F";
+			ctx.fillText(text, 30, 420);	
+			
+			ctx.font = '30px "Times New Roman"';
+			ctx.fillStyle = 'rgba(100, 0, 255, 1)'
+			ctx.fillText('Heart - girdle (100 vertices)', 400, 50);	
+		}	
+
+		function roundNumber(num, places) 
+		{
+			var t =  Math.round(num * Math.pow(10, places)) / Math.pow(10, places);
+			return t;
+		}
+		
+		function redraw()
+		{
+			ctx.clearRect(0, 0, 1200, 800);
+			init_girdle();
+//			ctx.putImageData(formula, 10, 200);
+			draw_girdle();
+			construction();		
+			pars_value();
+		}
+		
+		// Mouse
+		var mouseDown = false;
+		var lastMouseX = null;
+		var lastMouseY = null;
+		
+		function addHandler(object, event, handler) 
+		{
+			if (object.addEventListener) {
+				object.addEventListener(event, handler, false);
+		}
+		else if (object.attachEvent) 
+		{
+		  object.attachEvent('on' + event, handler);
+		}
+		else alert("Обработчик не поддерживается");
+		}
+		addHandler(window, 'DOMMouseScroll', wheel);
+		addHandler(window, 'mousewheel', wheel);
+		addHandler(document, 'mousewheel', wheel);		
+		
+		
+		function handleMouseDown(event) 
+		{
+			mouseDown = true;
+			lastMouseX = event.clientX;
+			lastMouseY = event.clientY;
+		}
+
+		function handleMouseUp(event) {
+			mouseDown = false;
+		}
+
+		function handleMouseMove(event) 
+		{
+			if (!mouseDown) 
+			{
+				return;
+			}
+			else
+			{
+				var newX = event.clientX;
+				var newY = event.clientY;
+
+				var deltaX = newX - lastMouseX;
+				if (deltaX < 0) // left
+				{
+					xC = xC - 5;
+				}
+				if (deltaX > 0) // left
+				{
+					xC = xC + 5;
+				}
+				
+				var deltaY = newY - lastMouseY;
+				if (deltaY < 0) // left
+				{
+					yC = yC - 5;
+				}
+				if (deltaY > 0) // left
+				{
+					yC = yC + 5;
+				}
+
+				lastMouseX = newX
+				lastMouseY = newY;
+				redraw();
+			}
+		}
+
+		function wheel(event) 
+		{
+			var delta; // Направление колёсика мыши
+			event = event || window.event;
+			// Opera и IE работают со свойством wheelDelta
+			if (event.wheelDelta) 
+			{ // В Opera и IE
+				delta = event.wheelDelta / 120;
+				// В Опере значение wheelDelta такое же, но с противоположным знаком
+				if (window.opera) 
+					delta = -delta; // Дополнительно для Opera
+			}
+			else if (event.detail) 
+			{ // Для Gecko
+				delta = -event.detail / 3;
+			}
+			// Запрещаем обработку события браузером по умолчанию
+			if (event.preventDefault) 
+				event.preventDefault();
+			event.returnValue = false;
+			//alert(delta); // Выводим направление колёсика мыши
+			SCALE = SCALE + 5 * delta; 
+			redraw();
+		}
+		
+        //canvas.onmousedown = handleMouseDown;
+		document.onmousedown = handleMouseDown;
+        document.onmouseup = handleMouseUp;
+        //canvas.onmousemove = handleMouseMove;
+		document.onmousemove = handleMouseMove;
+		
+		document.addEventListener('keydown', function(event)
+		{
+			var code = event.keyCode;
+			if (code == 37) 
+			{          
+			// left
+				xC = xC - 5; redraw()
+			  //is_moving_left = true;
+			}
+			if (code == 38) 
+			{                                   // up
+				yC = yC - 5; redraw();
+			  //is_moving_forward = true;
+			}
+			if (code == 39) 
+			{                                   // right
+			  xC = xC + 5; redraw()
+			  //is_moving_right = true;
+			}
+			if (code == 40) 
+			{                                   // down
+			  yC = yC + 5; redraw();
+			  //is_moving_back = true;
+			}
+			if (code == 188) 
+			{
+				SCALE = SCALE - 5; redraw();
+			}
+			if (code == 190) 
+			{
+				SCALE = SCALE + 5; redraw();
+			}
+		});
+
+		document.addEventListener('keyup', function(event) 
+		{
+			var code = event.keyCode;
+
+		//	if (code == 37) is_moving_left = false;
+		//	if (code == 38) is_moving_forward = false;
+		//	if (code == 39) is_moving_right = false;
+		//	if (code == 40) is_moving_back = false;
+		});
+			
+		function rs(x, y, s)
+		{
+			ctx.fillRect(x-s/2, y-s/2, s, s);
+		}
+			
+		function rsp(point, s)
+		{
+			ctx.fillRect( fx(point[0]) - s/2, fy(point[1]) - s/2, s, s);
+		}		
+		
+		function txt(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 2);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 2);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 3, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}		
+				
+		function txt2(str, point, align, baseline)
+		{
+			ctx.save();
+			if (baseline == "dn")
+			{
+				ctx.textBaseline = "top";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) + 5);
+					ctx.restore();
+					return;
+				}				
+			}
+			else if (baseline == "up")
+			{
+				ctx.textBaseline = "bottom";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]) - 5);
+					ctx.restore();
+					return;
+				}					
+			}
+			else
+			{
+				ctx.textBaseline = "middle";
+				if (align == "rt")
+				{
+					ctx.textAlign = "start";
+					ctx.fillText( str, fx(point[0]) + 5, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else if (align == "lt")
+				{
+					ctx.textAlign = "end";
+					ctx.fillText( str, fx(point[0]) - 8, fy(point[1]));
+					ctx.restore();
+					return;
+				}
+				else
+				{
+					ctx.textAlign = "center";
+					ctx.fillText( str, fx(point[0]), fy(point[1]));
+					ctx.restore();
+					return;
+				}				
+			}
+			ctx.restore();
+			return;
+		}			
+		
+		function arrow() 
+		{
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}		
+		
+		function arr(point, ang, scale) 
+		{
+			ctx.save();
+			ctx.translate(fx(point[0]), fy(point[1]));
+			ctx.scale(scale, scale);
+			ctx.rotate(ang);
+			ctx.beginPath();
+			ctx.moveTo(-15, 50);
+			ctx.lineTo(15, 50);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(-15, 50);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+			ctx.restore();
+		}
+			
+		function drawEllipse(x, y, a, b) 
+		{
+		   // Запоминаем положение системы координат (CК) и масштаб
+		  ctx.save();
+		  ctx.beginPath();
+		 
+		  // Переносим СК в центр будущего эллипса
+		  ctx.translate(fx(x), fy(y));
+		 
+		  /*
+		   * Масштабируем по х.
+		   * Теперь нарисованная окружность вытянется в a / b раз
+		   * и станет эллипсом
+		   */
+		 
+		  ctx.scale(a / b, 1);
+		 
+		  // Рисуем окружность, которая благодаря масштабированию станет эллипсом
+		  ctx.arc(0, 0, b*SCALE, 0, Math.PI * 2, true);
+		 
+		  // Восстанавливаем СК и масштаб
+		  ctx.restore();
+		  ctx.closePath();
+		  ctx.stroke();
+		  
+		}			
+
+		function line(pt1, pt2, x)
+		{
+			var k = (pt2[1] - pt1[1])/(pt2[0] - pt1[0]);
+			if (x > 0)
+			{
+				var pt = [pt1[0] + x, pt1[1] + k*x];
+				return pt;
+			}
+			else
+			{
+				var pt = [pt1[0] + x, pt1[1] + k*x];
+				return pt;				
+			}
+		}
+			
+		addEventListener("load", initiate);
+		
+	</script>
+</head>
+
+<body>
+</body>
+</html>

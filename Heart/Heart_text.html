@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Heart enumeration</title>
+	<script src = "../libs/three.min.js"></script>
+	<script src = "../libs/OrbitControls.js"></script>
+	<script src = "../libs/WebGeometry.js"></script>
+	<script src = "../libs/polyhedron.js"></script>
+	<script src = "Heart_index.js"></script>
+	<script src = "Heart_verts.js"></script>
+	
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+<script type="text/javascript">
+
+var scene, renderer, camera;
+var clock;
+var orbitControls;
+var btn_wireframe, btn_all, btn_cr_gd_pav;
+var mesh;
+var all_lines = [];
+var all_numbers = [];
+var ctx;
+var crown_image, pvilion_image;
+var btn_return;
+
+// Scale
+var kf = 25.0;
+var kf_lines = 25.2;
+
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+var DEGREE = 0.01745329251994;
+var SQRT2 =  1.41421356237309;
+
+var r = 0.06;          // Толщина рундиста
+var groove_pav = -0.016; // Позволяет измененять толщину рундиста в вырезе 
+	 // со стороны павильона (изменение глубины вершины g100).
+//  Следующие четыре парметра позволяют изменять толщину рундиста со
+// стороны короны и павильона в некоторых узловых вершинах рундиста.
+// Для того чтобы изменить значения этих параметров следует выбрать
+// самый маленький размер шага изменения параметров.
+var CrownPaint_1 = - 0.02; // Позволяет изменять высоту вершин g12 и g26
+var CrownPaint_2 = - 0.035; // Позволяет изменять высоту вершин g38, g46 и g50
+var PavPaint_1 = -0.011;   // Позволяет изменять глубину вершин g12 и g18
+var PavPaint_2 = - 0.001;   // Позволяет изменять глубину вершин g34 и g42
+// Форма рундиста
+var vp = 9.0*DEGREE;  //  Угол, определяющий степень отклонения 
+	 // кривой Ellipse_2 от окружности (см. парметры огранки груша)
+var pearRt = 1.8; // Задает отношение длина/ширина для груши
+var lambda = 21.5*DEGREE; // Задает угол наклона груши
+var Lh = 0.289;     // Отклонение смещения самого широкого места груши
+// Корона
+var crown_angle = 32*DEGREE;  // Задает угол короны
+var t = 0.58;      // Ширина площадки (вдоль оси X)
+var table_length = 0.68; // Позволяет изменять положение вершины 4 короны
+	 // и тем самым изменяет длину площадки (вдоль оси Y)
+var dSquare = 0.12; // При данном способе построения огранки сердце данный 
+	 // параметр введен только с целью последующего введения параметра
+	 // Star Facets. Определяет положение средних вершин короны.
+// Павильон
+var pav_angle = 40*DEGREE; // Задает угол павильона
+var hPavFacet = 0.7; // Задает глубину нижних вершин клиньев павильона
+var culet = 0.15;     // Определяет размер калетты огранки
+var CuletX = 0.0;    // Задает смещение калетты огранки вдль оси X
+var CuletY = - 0.09;    // Задает смещение калетты огранки вдль оси Y
+var del_hPavFacet = 0.017; // Позволяет в небольших пределах изменять
+	  // глубину вершины p0 павильона находящейся в глубине выреза
+//  Следующие восемь параметров определяют положение узловых вершин 
+// на рундисте огранки. Названия параметров привязаны к рисунку короны -
+// к ребрам нижних клиньев и главным четырехугольным граням короны.
+var DelAngGirdle_6 = -0.2*DEGREE;	// "Bone angle 1" -> ребро короны 8 - g6
+var DelAngGirdle_12 = 8.5*DEGREE;	// "Bone angle 2" -> ребро короны 8 - g12
+var DelAngGirdle_18 = 11.7*DEGREE; // "Facet angle A" -> грань A короны
+var DelAngGirdle_26 = -2.7*DEGREE;	// "Bone angle 3" -> ребро короны 9 - g26
+var DelAngGirdle_34 = -1.8*DEGREE;	// "Facet angle B" -> грань B короны
+var DelAngGirdle_38 = 0.5*DEGREE;	// "Bone angle 4" -> ребро короны 10 - g38
+var DelAngGirdle_42 = 0.6*DEGREE;	// "Facet angle C" -> грань C короны
+var DelAngGirdle_46 = 2.2*DEGREE;	// DelAngGirdle_46 "Bone angle 5"
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+function draw()
+{
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	var hud = document.createElement("canvas");
+	
+	document.body.appendChild(hud);
+	hud.width = width;
+	hud.height = height;
+	hud.style = "position: absolute; z-index: 0;"
+	ctx = hud.getContext('2d');
+	if (!ctx) 
+	{
+		console.log('Failed to get rendering context');
+		return;
+	}
+	print_text_2d_3d();
+
+	VerticesCalculation();
+	CreatePolyhedron();
+	scene = new THREE.Scene();
+	camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+	
+	renderer = new THREE.WebGLRenderer();
+	document.body.appendChild(renderer.domElement);
+	renderer.setClearColor(new THREE.Color(0xEEEEEE, 1.0));
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.shadowMapEnabled = true;	
+	
+	camera.position.x = 0;//-20;
+	camera.position.y = 0;//25;
+	camera.position.z = 50;//20;
+	camera.lookAt(new THREE.Vector3(0, 0, 0));
+	
+	orbitControls = new THREE.OrbitControls(camera);
+	orbitControls.autoRotate = false;
+	clock = new THREE.Clock();
+	
+	btn_wireframe = new Btn( "btn_wireframe1", "checkbox", "350px", "80px");
+	btn_wireframe.name.checked = false;
+	btn_wireframe.name.addEventListener("click", wireframe);
+	
+	btn_all = new Btn( "btn_radio1", "radio", "350px", "100px");
+	btn_all.name.checked = true;
+	btn_all.name.addEventListener("change", radio_all);	
+	
+	btn_cr_gd_pav = new Btn( "btn_radio2", "radio", "350px", "120px");
+	btn_cr_gd_pav.name.checked = false;
+	btn_cr_gd_pav.name.addEventListener("change", radio_cr_gd_pav);		
+	
+	btn_return = new Btn("Return to main view Heart", "button", "180px", "160px" );
+	btn_return.id.style.width = "200px";
+	btn_return.id.style.height = "50px";
+	btn_return.id.style.background= '#99ddff';
+	btn_return.id.style.borderRadius = "10px";
+	btn_return.id.style.cursor = "pointer";
+	btn_return.id.style.fontSize = "14px";
+	btn_return.id.style.fontWeight = "bold";
+	btn_return.id.style.color = '#000000';;
+	btn_return.id.style.borderWidth = "2px";
+	btn_return.id.style.borderColor = "red";
+	btn_return.name.addEventListener("click", function (){document.location.href = 'Heart.html';});	
+	
+	// Facets
+	var vectors = [];	
+	var i, j;
+	var el = 0;
+	
+	for (i = 0; i < vertices.length/3; i++)
+	{
+		var pt = new THREE.Vector3();
+		for (j = 0; j < 3; j++)
+		{
+			pt.x = kf * vertices[el];
+			pt.y = kf * vertices[el + 1];
+			pt.z = kf * vertices[el + 2];
+		}
+		vectors.push(pt);
+		el = el + 3;
+	}
+	
+	var geom = new THREE.Geometry();
+	geom.vertices = vectors;
+	geom.faces = faces;
+	var material = new THREE.MeshBasicMaterial( { color: 0xeeddff } );
+    mesh = new THREE.Mesh(geom, material);
+	mesh.position.x = 0;
+	mesh.position.y = 0;
+	mesh.position.z = 0;
+	scene.add(mesh);
+	
+	//      Lines
+
+	var material_line = new THREE.LineBasicMaterial({ color: 0x000000 });
+	
+	for (i = 0; i < plgs.length; i++)
+	{
+		var geom_line = new THREE.Geometry();
+		var vectors_line = [];
+		var facet = plgs[i].VertexFacet;
+			
+		for (j = 0; j < facet.vertexes.length; j++)
+		{
+			var vert = facet.vertexes[j];
+
+			var pt = new THREE.Vector3(kf_lines * vert[0], kf_lines * vert[1], kf_lines * vert[2]);
+			vectors_line.push(pt);
+		}
+		geom_line.vertices = vectors_line;
+		var mesh_line = new THREE.Line(geom_line, material_line);
+		all_lines.push(mesh_line);
+		scene.add(mesh_line);
+	}	
+	
+	// Text
+	create_num_vertices();
+
+	window.addEventListener('resize', onResize, false);
+	
+	render();
+}
+
+function create_text(txt)
+{
+	var ttt = 
+	{
+		text : txt,
+		size : 6,
+		height : 1,
+		curveSegments : 12,
+		font : "gentilis",
+		weight : "normal",
+		bevelEnabled : false,
+		bevelThickness : 1,
+		bevelSize : 0.5
+	};	
+	return ttt;
+}
+
+var loaderText = new THREE.FontLoader(); // Loader for text
+	
+// Two functions for create text
+function updateGroupGeometry( meshText, geometryText ) 
+{
+	meshText.children[ 0 ].geometry.dispose();
+	meshText.children[ 1 ].geometry.dispose();
+	meshText.children[ 0 ].geometry = new THREE.WireframeGeometry( geometryText );
+	meshText.children[ 1 ].geometry = geometryText;
+}			
+	
+function generateGeometry(meshText, text)
+{
+	var data = create_text(text);
+	loaderText.load
+	( 
+		'../libs/gentilis_bold.typeface.js',
+		function ( font ) 
+		{
+			var geometryText = new THREE.TextGeometry
+			( 
+				data.text, 
+				{
+					font: font,
+					size: data.size,
+					height: data.height,
+					curveSegments: data.curveSegments,
+					bevelEnabled: data.bevelEnabled,
+					bevelThickness: data.bevelThickness,
+					bevelSize: data.bevelSize
+				} 
+			);
+			geometryText.center();
+			updateGroupGeometry( meshText, geometryText );
+		}
+	);
+}
+
+function render() 
+{
+	var delta = clock.getDelta();
+	orbitControls.update(delta);
+	requestAnimationFrame(render);
+	renderer.render(scene, camera);
+}	
+
+function wireframe()
+{
+	if (btn_wireframe.name.checked == true)
+	{
+		scene.remove(mesh);
+	}	
+	else
+	{
+		scene.add(mesh);
+	}	
+}
+
+function Btn(name, type, left, top )
+{
+	this.name = name;
+	this.name = document.createElement('input');
+	this.name.type = type;   //'button';
+	this.name.value = name;
+	this.id = document.body.appendChild(this.name);
+	this.id.style = "position: absolute";
+	this.id.style.background='#0fff0';
+	this.id.style.top = top;
+	this.id.style.left = left;
+	this.id.style.width = "30px";
+	this.id.style.opacity = "0.8";
+	this.id.className = "b1";
+	this.id.style.cursor = "pointer";
+}
+	
+function print_text_2d_3d()
+{
+	ctx.font = '30px "Times New Roman"';
+	ctx.fillStyle = 'rgba(0, 0, 255, 1)'; 
+
+	ctx.fillText('Heart', window.innerWidth/2 - window.innerWidth/20, 40);
+	ctx.font = '20px "Times New Roman"';
+	ctx.fillText('Crown - 33 facets + Table, Girdle - 64 facets, Pavilion - 24 facets + Culet', 
+							window.innerWidth/2 - window.innerWidth/5, 65);
+							
+	ctx.font = '14px "Times New Roman"';
+	ctx.fillStyle = 'rgba(255, 0, 255, 1)';	
+	ctx.fillText("Spin the Cut by dragging it with mouse", window.innerWidth/2 - window.innerWidth/12, 90);						
+
+	ctx.font = '14px "Times New Roman"';
+	ctx.fillStyle = 'rgba(0, 0, 255, 1)';
+	ctx.fillText("Wireframe", 250, 95);
+	ctx.fillText("All vertices", 250, 115);
+	ctx.fillText("Crown-Gd.-Pav.", 250, 135);	
+}
+
+function degToRad(degrees) 
+{
+	return degrees * Math.PI / 180;
+}
+
+function radio_all() 
+{ 
+	if (btn_all.name.checked == true )
+	{
+		btn_cr_gd_pav.name.checked = false;
+		create_num_vertices();
+	}
+}
+
+function radio_cr_gd_pav() 
+{ 
+	if (btn_cr_gd_pav.name.checked == true )
+	{
+		btn_all.name.checked = false;
+		create_num_vertices();
+	}
+}
+
+function create_num_vertices()
+{
+	for(i = 0; i < all_numbers.length; i++) 
+	{
+		scene.remove(all_numbers[i]);	
+	}
+	all_numbers.length = 0;
+	
+	var x, y, z;
+	var ind = 0;
+	var number = 0;
+	var n = vertices.length/3;
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < 3; j++)
+		{
+			x = vertices[ind];
+			y = vertices[ind + 1];
+			z = vertices[ind + 2];
+		}
+		if  ( (i > 15)&&(i < 21) || (i > 21)&&(i < 27)  || (i > 27)&&(i < 33)    || (i > 33)&&(i < 41)   || (i > 41)&&(i < 49) ||
+			  (i > 49)&&(i < 53) || (i > 53)&&(i < 57) || ( i > 57)&&(i < 61) || (i > 61)&&(i < 65) || (i > 65)&&(i < 69) ||
+			  (i > 69)&&(i < 73) || (i > 73)&&(i < 77) || (i > 77)&&(i < 81) || (i > 81)&&(i < 89) || (i > 89)&&(i < 97) ||
+			  (i > 97)&&(i < 103) || (i > 103)&&(i < 109) || (i > 109)&&(i < 115) || (i > 115)&&(i < 127) || (i > 127)&&(i < 133) ||
+			  (i > 133)&&(i < 141)  || (i > 141)&&(i < 149) || (i > 149)&&(i < 153) || (i > 153)&&(i < 157) || (i > 157)&&(i < 161) ||
+			  (i > 161)&&(i < 165) || (i > 165)&&(i < 169) || (i > 169)&&(i < 173) || (i > 173)&&(i < 177) || (i > 177)&&(i < 181) ||
+			  (i > 181)&&(i < 189) || (i > 189)&&(i < 197) || (i > 197)&&(i < 203) || (i > 203)&&(i < 215))
+		{
+			// Не отображаем некоторые (не узловые) индексы вершин рундиста.
+			//all_numbers.push(meshText);
+			ind = ind + 3;
+			number = number + 1;
+			continue;
+		}			
+			
+		var meshText = new THREE.Object3D();
+		meshText.add(
+			new THREE.LineSegments(
+				new THREE.Geometry(),
+				new THREE.LineBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.5})));
+		meshText.children[ 0 ].visible = false; // no wiveframe
+		
+		if (btn_all.name.checked == true)
+		{
+			meshText.add(
+				new THREE.Mesh(
+					new THREE.Geometry(),
+					new THREE.MeshPhongMaterial({color: 0xffffff, emissive: 0x000000, side: THREE.DoubleSide, shading: THREE.FlatShading})));
+			generateGeometry( meshText, number.toString() );
+		}
+		else
+		{
+			if ( number < 16 )
+			{
+				meshText.add(
+					new THREE.Mesh(
+						new THREE.Geometry(),
+						new THREE.MeshPhongMaterial({color: 0xffffff, emissive: 0xff0077, side: THREE.DoubleSide, shading: THREE.FlatShading})));
+				generateGeometry( meshText, number.toString() );
+			}
+			else if ( (number > 15) && (number < 215) )
+			{
+				meshText.add(
+					new THREE.Mesh(
+						new THREE.Geometry(),
+						new THREE.MeshPhongMaterial({color: 0xffffff, emissive: 0x0000ff, side: THREE.DoubleSide, shading: THREE.FlatShading})));
+				generateGeometry( meshText, (number - 15).toString() );	
+			}
+			else 
+			{
+				meshText.add(
+					new THREE.Mesh(
+						new THREE.Geometry(),
+						new THREE.MeshPhongMaterial({color: 0xffffff, emissive: 0xff0000, side: THREE.DoubleSide, shading: THREE.FlatShading})));
+				generateGeometry( meshText, (number - 215).toString() );	
+			}
+		}
+
+		meshText.scale.set(0.1, 0.1, 0.1);	
+		if ( (ind/3) < 115 ) 
+		{
+			z = z + 0.022;
+			meshText.position.set(kf*x, kf*y, kf*z);
+		}
+		else
+		{
+			z = z - 0.03;
+			meshText.position.set(kf*x, kf*y, kf*z);
+			meshText.rotation.x = Math.PI;
+			meshText.rotation.z = Math.PI;			
+		}
+		all_numbers.push(meshText);
+		ind = ind + 3;
+		number = number + 1;
+	}	
+	for(i = 0; i < all_numbers.length; i++) 
+	{
+		scene.add(all_numbers[i]);	
+	}
+}
+
+
+function onResize() 
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.onload = draw;
+</script>
+</body>
+</html>
